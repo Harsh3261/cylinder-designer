@@ -1,3 +1,21 @@
+# Note for Muse — v2: full imperial (NFPA) support (2026-11-23)
+
+Harsh: "some people use imperial as well". The in·psi switch already converted every input and result; what was
+missing was the inch SIZE SERIES. Added:
+- NFPA bores 1.50, 2.00, 2.50, 3.25, 4.00, 5.00, 6.00, 8.00 in — Parker Series H (HY08-AC1314-1NA), Bosch Rexroth NFPA
+  Industrial (RA 17038/08.13), Hydraulic Cylinders Inc. NFPA catalogue: all three agree.
+- NFPA rods 0.625, 1.000, 1.375, 1.750, 2.000 in (same three) and 2.50, 3.00, 3.50, 4.00 in (Parker Series H + an
+  independent NFPA size listing at hydraulics.ezvirtualtools.com — weaker source, flagged).
+- Withheld, one source each: bore 7.00 in (Parker H only), rods 4.50–5.50 in, bores above 8 in → GAPS.md #10.
+- Size pickers now list NFPA (inch) and ISO 3320 (metric) as two groups — inch first when inch units are on.
+- Tie-rod threads follow the thread system (inch TPI or metric pitch); new field tieTPI.
+- "Load the example" loads an inch worked example (NFPA 4.00 bore × 2.50 rod × 24 in, 2300 / 2900 psi) when inch
+  units are on; metric example otherwise. Inch example: 12 OK, 4 to check, 0 failing.
+Tests: 44 engine checks (2 new: the two NFPA series). Headless iPhone viewport: inch example, NFPA pick (5.00 in),
+ISO stroke pick in inch mode (3.937 in), switch back to metric (127 mm) — 0 errors. sw.js cylinder-designer-v2-inch.
+
+---
+
 # Note for Muse — Cylinder Designer v1 (new app, 2026-11-23)
 
 Harsh asked for a new interactive site covering "everything about hydraulic cylinders and design", research left to me.

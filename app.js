@@ -63,7 +63,7 @@
     ["weldA","len","Cap weld throat (0 = no weld)",0.008,"Circumferential weld joining cap and tube."],
     ["weldS","stress","Allowable weld shear stress",120e6,"Example value — use your welding procedure's allowable."],
     /* 7 rod end */
-    ["thrSys","sel","Rod-end thread system",["metric"],[["metric","Metric (d × pitch)"],["inch","Inch (D – TPI)"]]],
+    ["thrSys","sel","Thread system (rod end and tie rods)",["metric"],[["metric","Metric (d × pitch)"],["inch","Inch (D – TPI)"]]],
     ["thrD","len","Thread major diameter",0.042,""],
     ["thrP","len","Thread pitch (metric)",0.002,""],
     ["thrTPI","n","Threads per inch (inch)",12,""],
@@ -75,7 +75,8 @@
     ["constr","sel","Construction",["welded"],[["welded","Welded (cap welded to tube)"],["tierod","Tie-rod"],["mill","Mill type / bolted flanges"]]],
     ["nTie","n","Number of tie rods / bolts",4,""],
     ["tieD","len","Tie-rod thread major diameter",0.016,""],
-    ["tieP","len","Tie-rod thread pitch",0.002,""],
+    ["tieP","len","Tie-rod thread pitch (metric)",0.002,""],
+    ["tieTPI","n","Tie-rod threads per inch (inch)",18,""],
     ["Sytie","stress","Tie-rod minimum yield strength",640e6,"Example value."],
     /* 9 cushions */
     ["cushCap","len","Cap-end cushion length (0 = none)",0.025,""],
@@ -96,6 +97,13 @@
   FD.mount.opts = CD.STROKE_FACTORS.map(function(s){ return [s.id, s.group + " · rod: " + s.rod + " · factor " + s.f.toFixed(1)]; });
   var S = {};
   function defaults(){ F.forEach(function(f){ var d = FD[f[0]]; S[d.k] = d.q === "sel" ? d.def[0] : d.def; }); }
+  /* Inch worked example (NFPA sizes) — loaded by "Load the example" when inch units are on. */
+  var IN = 0.0254, PSI = 6894.757, LBF = 4.4482216;
+  var EX_INCH = { Fpush:18000 * LBF, Fpull:6500 * LBF, mass:1100 * 0.45359237, stroke:24 * IN, vExt:4 * IN, vRet:6 * IN, p:2300 * PSI, pmax:2900 * PSI,
+    D:4 * IN, d:2.5 * IN, Lc:36 * IN, stick:2.5 * IN, ext:0, Do:4.75 * IN, tcap:1.25 * IN, weldA:0.3125 * IN, thrSys:"inch", thrD:1.875 * IN, thrTPI:12,
+    pinD:1.75 * IN, pinL:1.75 * IN, tieD:0.625 * IN, tieTPI:18, cushCap:1 * IN, spear:1.5 * IN, cushRod:1 * IN, collar:3 * IN,
+    portCap:0.75 * IN, portRod:0.75 * IN, V1d:30 * 1.6387e-5, V2d:30 * 1.6387e-5 };
+  function loadExample(){ defaults(); if (sys === "i") for (var k in EX_INCH) S[k] = EX_INCH[k]; }
   defaults();
   try { var saved = JSON.parse(localStorage.getItem("cyl.design") || "null"); if (saved) for (var k in saved) if (k in FD) S[k] = saved[k];
     sys = localStorage.getItem("cyl.units") === "i" ? "i" : "m"; } catch(e){}
@@ -154,7 +162,7 @@
     R.pin = CD.pin(Fpin, S.pinD, S.pinL, +S.pinPlanes); R.Fpin = Fpin;
     R.SFpin = 0.577 * S.Sypin / R.pin.shear; /* shear yield ≈ 0.577·Sy (von Mises) */
     /* tie rods */
-    if (S.constr !== "welded"){ var Ast = CD.stressAreaMetric(S.tieD, S.tieP); R.tie = CD.tieRods(S.pmax, D, S.nTie, Ast); R.SFtie = S.Sytie / R.tie.stress; R.tieAs = Ast; }
+    if (S.constr !== "welded"){ var Ast = S.thrSys === "inch" ? CD.stressAreaInch(S.tieD / 0.0254, S.tieTPI) : CD.stressAreaMetric(S.tieD, S.tieP); R.tie = CD.tieRods(S.pmax, D, S.nTie, Ast); R.SFtie = S.Sytie / R.tie.stress; R.tieAs = Ast; }
     /* cushions */
     var pc = S.pcush > 0 ? S.pcush : null, ang = S.dir === "up" ? 90 : S.dir === "down" ? -90 : 0;
     R.pcAllow = pc;
@@ -221,9 +229,12 @@
       (u[1] ? '<em>' + u[1] + "</em>" : "") + "</span>" + (extra || "") + (f.hint ? '<small>' + esc(f.hint) + "</small>" : "") + "</label>";
   }
   function isoPick(kind){
-    var list = kind === "D" ? CD.BORES : kind === "d" ? CD.RODS : CD.STROKES.map(function(v){ return { v:v, np:false }; });
-    return '<select class="iso" data-iso="' + kind + '" aria-label="Pick a standard size"><option value="">' + (kind === "stroke" ? "ISO 4393 strokes…" : "ISO 3320 sizes…") + "</option>" +
-      list.map(function(b){ return '<option value="' + b.v + '">' + b.v + " mm" + (sys === "i" ? " (" + (b.v / 25.4).toFixed(3) + " in)" : "") + (b.np ? " — non-preferred" : "") + "</option>"; }).join("") + "</select>";
+    if (kind === "stroke") return '<select class="iso" data-iso="stroke" data-mm="1" aria-label="Pick a standard stroke"><option value="">ISO 4393 strokes…</option>' +
+      CD.STROKES.map(function(v){ return '<option value="' + v + '">' + v + " mm" + (sys === "i" ? " (" + (v / 25.4).toFixed(2) + " in)" : "") + "</option>"; }).join("") + "</select>";
+    var iso = (kind === "D" ? CD.BORES : CD.RODS).map(function(b){ return '<option value="' + (b.v / 1000) + '">' + b.v + " mm" + (b.np ? " — non-preferred" : "") + "</option>"; }).join("");
+    var nf = (kind === "D" ? CD.NFPA_BORES : CD.NFPA_RODS).map(function(v){ return '<option value="' + (v * 0.0254) + '">' + v.toFixed(3).replace(/0$/, "") + " in</option>"; }).join("");
+    var g1 = '<optgroup label="ISO 3320 (metric)">' + iso + "</optgroup>", g2 = '<optgroup label="NFPA (inch)">' + nf + "</optgroup>";
+    return '<select class="iso" data-iso="' + kind + '" aria-label="Pick a standard size"><option value="">Standard sizes…</option>' + (sys === "i" ? g2 + g1 : g1 + g2) + "</select>";
   }
   function row(label, val, cls){ return '<div class="r' + (cls ? " " + cls : "") + '"><span>' + label + "</span><b>" + val + "</b></div>"; }
   function chip(st){ return '<i class="chip ' + st + '">' + { pass:"OK", warn:"Check", fail:"Fails", na:"—" }[st] + "</i>"; }
@@ -311,7 +322,7 @@
   function visibility(){
     var inch = S.thrSys === "inch";
     toggle("thrP", !inch); toggle("thrTPI", inch);
-    var tie = S.constr !== "welded"; ["nTie","tieD","tieP","Sytie"].forEach(function(k){ toggle(k, tie); }); toggle("weldA", !tie); toggle("weldS", !tie);
+    var tie = S.constr !== "welded"; ["nTie","tieD","tieP","tieTPI","Sytie"].forEach(function(k){ toggle(k, tie); }); if (tie){ toggle("tieP", !inch); toggle("tieTPI", inch); } toggle("weldA", !tie); toggle("weldS", !tie);
   }
   function toggle(k, on){ var el = $("in-" + k); if (el) el.closest(".fld").style.display = on ? "" : "none"; }
 
@@ -362,12 +373,12 @@
   });
   document.addEventListener("change", function(e){
     var iso = e.target.getAttribute("data-iso");
-    if (iso && e.target.value){ S[iso] = +e.target.value / 1000; var inp = $("in-" + iso); if (inp) inp.value = +(S[iso] / uf("len")[0]).toFixed(6); e.target.value = ""; save(); update(); }
+    if (iso && e.target.value){ S[iso] = e.target.getAttribute("data-mm") ? +e.target.value / 1000 : +e.target.value; var inp = $("in-" + iso); if (inp) inp.value = +(S[iso] / uf("len")[0]).toFixed(6); e.target.value = ""; save(); update(); }
     var k = e.target.getAttribute("data-k"); if (k && FD[k].q === "sel"){ S[k] = e.target.value; visibility(); save(); update(); }
   });
   function setUnits(u){ sys = u; document.querySelectorAll("[data-units]").forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-units") === u ? "true" : "false"); }); save(); renderSteps(); update(); }
   document.querySelectorAll("[data-units]").forEach(function(b){ b.onclick = function(){ setUnits(b.getAttribute("data-units")); }; });
-  $("btnReset").onclick = function(){ defaults(); save(); renderSteps(); update(); };
+  $("btnReset").onclick = function(){ loadExample(); save(); renderSteps(); update(); };
   $("btnClear").onclick = function(){ F.forEach(function(f){ var d = FD[f[0]]; if (d.q !== "sel" && ["eff","etaP","nu","Erod","Etube","beta","SFb","SFt","K"].indexOf(d.k) < 0) S[d.k] = null; }); save(); renderSteps(); update(); };
   /* views */
   function show(v){ document.querySelectorAll(".view").forEach(function(s){ s.hidden = s.id !== "view-" + v; });

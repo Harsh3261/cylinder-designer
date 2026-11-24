@@ -16,6 +16,11 @@ var CD = (function(){
   /* ISO 4393:2015 Table 1 strokes (mm); extension by rounded R10 (ISO 497) — Atos KTC catalogue lists the same
      series extended to 1250. */
   var STROKES = [5,10,25,50,80,100,125,160,200,250,320,400,500,630,800,1000,1250];
+  /* NFPA inch series (inches). Bores 1.50–8.00: Parker Series H (HY08-AC1314), Bosch Rexroth NFPA (RA 17038),
+     Hydraulic Cylinders Inc. NFPA catalogue — all three agree. Rods 0.625–2.000: same three; 2.50–4.00: Parker Series H +
+     an independent NFPA size listing. Withheld (one source only): bore 7.00, rods 4.50–5.50, bores above 8.00 (GAPS.md). */
+  var NFPA_BORES = [1.5,2,2.5,3.25,4,5,6,8];
+  var NFPA_RODS = [0.625,1,1.375,1.75,2,2.5,3,3.5,4];
   function flat(list){ return list.map(function(v){ return Array.isArray(v) ? { v:v[0], np:true } : { v:v, np:false }; }); }
 
   /* ---- Stroke factors (catalogue piston-rod selection method). Basic length = (net stroke + extra rod
@@ -182,7 +187,7 @@ var CD = (function(){
   /* Oil compression on the cap side at pressure p: ΔV = V·p/β (bulk modulus). */
   function compression(V, p, beta){ return V * p / beta; }
 
-  return { G:G, area:area, BORES:flat(BORES), RODS:flat(RODS), STROKES:STROKES, STROKE_FACTORS:STROKE_FACTORS, stopTube:stopTube,
+  return { G:G, area:area, BORES:flat(BORES), RODS:flat(RODS), NFPA_BORES:NFPA_BORES, NFPA_RODS:NFPA_RODS, STROKES:STROKES, STROKE_FACTORS:STROKE_FACTORS, stopTube:stopTube,
     forces:forces, requiredBore:requiredBore, speeds:speeds, intensification:intensification, regen:regen, hydPower:hydPower,
     rodBuckling:rodBuckling, minRod:minRod, steppedBuckling:steppedBuckling, tube:tube, tubeMinWall:tubeMinWall,
     plate:plate, plateMinT:plateMinT, weld:weld, stressAreaMetric:stressAreaMetric, stressAreaInch:stressAreaInch,

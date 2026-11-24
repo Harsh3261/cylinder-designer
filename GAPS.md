@@ -10,4 +10,5 @@
 | 6 | ISO 3320 Table 4 area ratios | Not in readable sources | ISO 3320:2013 |
 | 7 | ISO 4395 rod-end thread table (rod Ø → thread) | Not loaded | ISO 4395 + a catalogue |
 | 8 | Seal friction model; fatigue life of tube and mounts (NFPA T2.6.1 / ISO 10771) | Not modelled | Seal-maker friction data; fatigue standard |
+| 10 | NFPA bore 7.00 in; rods 4.50, 5.00, 5.50 in; bores 10–14 in | Only one catalogue each so far | A second NFPA catalogue (e.g. Rexroth / Milwaukee / Sheffer) listing them |
 | 9 | Peak cushion pressure (profile-dependent) | Only the average is computed | Cushion design paper (Rao & Sanaullah, IISc) + a manufacturer's method |

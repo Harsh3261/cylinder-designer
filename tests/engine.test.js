@@ -62,5 +62,7 @@ ok("no bore 60 (named gap)", !CD.BORES.some(x => x.v === 60));
 ok("rods 4..450", CD.RODS[0].v === 4 && CD.RODS[CD.RODS.length - 1].v === 450);
 ok("stroke factors 10 rows", CD.STROKE_FACTORS.length === 10);
 const mr = CD.minRod(50e3, 3, 206e9, 520e6, 2, 1); ok("minRod meets SF", mr && mr.Pcr / 50e3 >= 3);
+ok("NFPA bores 1.5–8 without 7", CD.NFPA_BORES.join() === "1.5,2,2.5,3.25,4,5,6,8");
+ok("NFPA rods 0.625–4", CD.NFPA_RODS.join() === "0.625,1,1.375,1.75,2,2.5,3,3.5,4");
 if (fails.length){ console.log("FAIL " + fails.length + "/" + n + "\n" + fails.join("\n")); process.exit(1); }
 console.log("OK " + n + " engine checks");
