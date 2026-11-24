@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cylinder Designer — hydraulic cylinder design, step by step</title>
+<meta name="description" content="Design a hydraulic cylinder step by step: force, bore and rod, speed and flow, buckling, tube wall, cap and welds, rod end, tie rods, cushions, ports, dynamics — plus everything to learn about cylinders.">
+<meta name="theme-color" content="#0e1116">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#0e1116;--panel:#151a22;--panel2:#1b212b;--line:#283040;--ink:#e8ecf2;--mut:#9aa6b8;--acc:#f0a33a;--acc2:#4fb3c9;--ok:#3fb87a;--warn:#e7b43c;--bad:#e5604d;
+  --r:12px;--f:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;--m:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f)}
+a{color:var(--acc2)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+.top{position:sticky;top:0;z-index:20;background:#0e1116f5;border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
+.top .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px;margin-right:auto}
+.brand svg{width:30px;height:30px}.brand small{display:block;font-weight:400;color:var(--mut);font-size:12px}
+nav.views{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav.views button,.seg button{background:none;border:0;color:var(--mut);font:600 13px var(--f);padding:7px 12px;border-radius:8px;cursor:pointer}
+nav.views button[aria-current=page],.seg button[aria-pressed=true]{background:var(--panel2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.seg{display:flex;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+.hero{padding:22px 0 6px}.hero h1{margin:0 0 4px;font-size:24px}.hero p{margin:0;color:var(--mut);max-width:760px}
+.status{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.status b{font-weight:600;font-size:13px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel)}
+.status .pass{color:var(--ok)}.status .warn{color:var(--warn)}.status .fail{color:var(--bad)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+button.ghost,.actions button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:600 13px var(--f);padding:7px 12px;border-radius:8px;cursor:pointer}
+.diagram{background:linear-gradient(180deg,#141a23,#11161d);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;margin-bottom:16px}
+#cyl{width:100%;height:auto;display:block}
+#cyl .tb{fill:#2a3444;stroke:#46536a}#cyl .bo{fill:#1a2a33}#cyl .pi{fill:var(--acc)}#cyl .ro{fill:#c9d3df;stroke:#8d99a8}
+#cyl .dim{stroke:var(--acc2);stroke-width:1.5}#cyl .dt{fill:var(--mut);font:12px var(--f);text-anchor:middle}
+.layout{display:grid;grid-template-columns:220px 1fr;gap:18px;align-items:start}
+#toc{position:sticky;top:76px;display:flex;flex-direction:column;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:8px}
+#toc a{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px}
+#toc a:hover{background:var(--panel2)}#toc a span{width:22px;height:22px;border-radius:6px;background:var(--panel2);display:grid;place-items:center;font:600 12px var(--f);color:var(--mut);flex:none}
+#toc a i{margin-left:auto;width:8px;height:8px;border-radius:50%}#toc a i.pass{background:var(--ok)}#toc a i.warn{background:var(--warn)}#toc a i.fail{background:var(--bad)}
+.step,#report{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px;scroll-margin-top:80px}
+.step>header,#report>header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.sn{width:32px;height:32px;border-radius:9px;background:var(--acc);color:#1a1205;display:grid;place-items:center;font-weight:800;flex:none}
+.step h2,#report h2{margin:0;font-size:18px}.step header p,#report header p{margin:0;color:var(--mut);font-size:13px}
+.sst{margin-left:auto}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.ins{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;align-content:start}
+.fld{display:flex;flex-direction:column;gap:4px;font-size:13px;min-width:0}.fld>span:first-child{color:var(--mut)}
+.fld small{color:#7f8a9c;font-size:12px;line-height:1.35}
+.iu{display:flex;align-items:stretch;background:var(--bg);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.iu:focus-within,select:focus{outline:2px solid var(--acc2);outline-offset:1px}
+.iu input{flex:1;min-width:0;background:none;border:0;color:var(--ink);font:15px var(--m);padding:8px 10px}
+.iu input:focus{outline:none}.iu em{font-style:normal;color:var(--mut);font-size:12px;padding:0 10px;display:flex;align-items:center;border-left:1px solid var(--line);background:var(--panel2)}
+select{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;font:14px var(--f);padding:8px}
+select.iso{margin-top:4px;font-size:12px;padding:5px;color:var(--mut)}
+.outs{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;align-self:start}
+.outs h4,#report h4{margin:12px 0 4px;font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--acc2)}
+.r{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px dashed #222a37;font-size:13.5px}
+.r:last-child{border-bottom:0}.r span{color:var(--mut)}.r b{font:600 13.5px var(--m);text-align:right}
+.r.hl b{color:var(--acc)}.r.good b{color:var(--ok)}.r.bad b,.bad{color:var(--bad)}
+.note{color:var(--mut);font-size:12.5px;margin:8px 0 0}
+.chip{font-style:normal;font:700 11px var(--f);padding:3px 8px;border-radius:999px;letter-spacing:.3px}
+.chip.pass{background:#173a2a;color:#6fe0a6}.chip.warn{background:#3d3216;color:#f2cd6b}.chip.fail{background:#43201b;color:#ff9a8a}.chip.na{background:var(--panel2);color:var(--mut)}
+table.rep{width:100%;border-collapse:collapse;font-size:13.5px}table.rep th,table.rep td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.rep th{color:var(--mut);font-weight:600;font-size:12px}
+.sum{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 12px}.actions{margin-top:12px}
+/* learn */
+.learn{display:grid;grid-template-columns:220px 1fr;gap:18px;align-items:start;padding-bottom:40px}
+.learn nav{position:sticky;top:76px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:8px;display:flex;flex-direction:column}
+.learn nav a{padding:6px 8px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px}.learn nav a:hover{background:var(--panel2)}
+.learn article{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:14px;scroll-margin-top:80px}
+.learn h2{margin:0 0 8px;font-size:20px}.learn h3{margin:16px 0 6px;font-size:15px;color:var(--acc)}
+.learn p,.learn li{color:#cfd6e0}.learn ul,.learn ol{padding-left:20px}
+.learn table{width:100%;border-collapse:collapse;font-size:13.5px;margin:8px 0}.learn th,.learn td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
+.learn th{color:var(--mut);font-weight:600}.learn code{font:13px var(--m);background:var(--bg);padding:1px 5px;border-radius:5px}
+.fx{font:14px var(--m);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;overflow-x:auto;white-space:nowrap}
+.refs li{margin-bottom:8px}
+footer{color:var(--mut);font-size:12.5px;padding:20px 0 calc(30px + env(safe-area-inset-bottom));border-top:1px solid var(--line);margin-top:20px}
+@media (max-width:900px){.layout,.learn{grid-template-columns:1fr}#toc,.learn nav{position:static;flex-direction:row;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  #toc a,.learn nav a{white-space:nowrap}#toc a i{display:none}.grid{grid-template-columns:1fr}}
+@media (max-width:560px){.brand small{display:none}.hero h1{font-size:20px}.ins{grid-template-columns:minmax(0,1fr)}.top .wrap{gap:6px;padding-top:6px;padding-bottom:6px}
+  .brand{width:100%}.brand svg{width:24px;height:24px}nav.views button,.seg button{padding:6px 10px}.tools{margin-left:0}.step,#report{padding:12px}
+  .r{flex-wrap:wrap;gap:2px 10px}.r b{margin-left:auto}table.rep{font-size:12.5px}table.rep td:nth-child(4){min-width:140px}#report{overflow-x:auto}}
+@media print{.top,#toc,.diagram,.tools,.actions,.views,footer,.learn nav{display:none!important}body{background:#fff;color:#000}
+  .step,#report{border:1px solid #bbb;break-inside:avoid;background:#fff}.outs,.sum{background:#fff}.r span,.note{color:#333}.r b{color:#000}.layout{display:block}
+  .iu{border:1px solid #999}.iu input{color:#000}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap">
+  <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="10" width="17" height="12" rx="2" fill="#2a3444" stroke="#46536a"/><rect x="12" y="11.5" width="3" height="9" fill="#f0a33a"/><rect x="15" y="14" width="15" height="4" rx="1" fill="#c9d3df"/></svg>
+    <div>Cylinder Designer<small>Hydraulic cylinder design, step by step</small></div></div>
+  <nav class="views" aria-label="Sections"><button type="button" data-view="design" aria-current="page">Design</button><button type="button" data-view="learn">Learn</button><button type="button" data-view="refs">Sources</button></nav>
+  <div class="seg" role="group" aria-label="Units"><button type="button" data-units="m" aria-pressed="true">mm · bar</button><button type="button" data-units="i" aria-pressed="false">in · psi</button></div>
+</div></div>
+
+<main class="wrap">
+<section class="view" id="view-design">
+  <div class="hero"><h1>Design a hydraulic cylinder</h1>
+    <p>Work down the steps. Every result updates as you type, every check shows OK / Check / Fails, and the report at the end collects them for printing. The numbers loaded are a worked example — replace them with yours.</p></div>
+  <div class="status"><span id="status"></span><span class="tools"><button type="button" class="ghost" id="btnReset">Load the example</button><button type="button" class="ghost" id="btnClear">Clear my inputs</button></span></div>
+  <div class="diagram"><svg id="cyl" role="img" aria-label="Side view of the cylinder, to scale"></svg></div>
+  <div class="layout"><nav id="toc" aria-label="Design steps"></nav><div><div id="steps"></div><section id="report"></section></div></div>
+</section>
+
+<section class="view" id="view-learn" hidden>
+  <div class="hero"><h1>Everything about hydraulic cylinders</h1><p>How they work, how they are built, how to design, seal, mount, make, test and fix them — and which standards apply.</p></div>
+  <div class="learn">
+    <nav aria-label="Learn topics"><a href="#l-work">How it works</a><a href="#l-types">Types</a><a href="#l-parts">Parts</a><a href="#l-process">Design process</a><a href="#l-formulas">Formulas</a><a href="#l-seals">Seals</a><a href="#l-mount">Mountings</a><a href="#l-mat">Materials &amp; finishes</a><a href="#l-tol">Tolerances</a><a href="#l-fail">Failures &amp; troubleshooting</a><a href="#l-test">Testing &amp; inspection</a><a href="#l-std">Standards</a><a href="#l-gloss">Glossary</a></nav>
+    <div>
+<article id="l-work"><h2>How a hydraulic cylinder works</h2>
+<p>A cylinder turns fluid pressure into a straight-line force. Oil pumped into one side of the piston pushes it; oil on the other side flows out to tank. The force is simply pressure times the area the pressure acts on.</p>
+<div class="fx">F = p × A &nbsp;&nbsp; A = π·D²/4 &nbsp;&nbsp; speed v = Q / A</div>
+<ul><li><b>Extending</b>, pressure acts on the full bore area A1 — the strongest, slowest direction.</li>
+<li><b>Retracting</b>, pressure acts only on the annulus A2 = A1 − rod area — weaker but faster for the same flow.</li>
+<li>The <b>area ratio φ = A1/A2</b> sets how different the two directions are. A large rod gives a high φ: more buckling strength, less pull force, faster retract.</li>
+<li>Oil coming out of the cap side on retract is φ times the pump flow — size the cap port and return line for it.</li>
+<li><b>Intensification:</b> if the rod side is blocked or metered while the cap side is pressurised, the rod side can reach p × φ — above the relief setting. Seals, hoses and the head must take it.</li>
+<li><b>Regeneration:</b> connecting the rod-side outflow back to the cap side makes the cylinder extend faster (as if only the rod area were working) but with force only p × rod area.</li></ul>
+<h3>Single- and double-acting</h3><p>A single-acting cylinder is powered one way and returned by the load or a spring. A double-acting cylinder is powered both ways. A double-rod (through-rod) cylinder has equal areas both sides — equal speed and force each way, common in servo systems.</p></article>
+
+<article id="l-types"><h2>Types of cylinder</h2>
+<table><tr><th>Type</th><th>How it is held together</th><th>Strengths</th><th>Watch for</th></tr>
+<tr><td>Tie-rod</td><td>Square heads and caps clamped to the tube by long tie rods (NFPA, ISO 6020-2 style)</td><td>Standard dimensions, easy to repair and re-seal, interchangeable</td><td>Tie-rod stretch at high pressure; size limits; dirt traps</td></tr>
+<tr><td>Welded body</td><td>Cap welded to the tube; head threaded, wire-ring retained or bolted</td><td>Compact, strong, custom lengths — typical of mobile equipment</td><td>Weld quality, distortion of the honed bore near welds, harder to repair</td></tr>
+<tr><td>Mill type</td><td>Heavy bolted flanges at both ends</td><td>Very high loads, steel mills, presses; rebuildable</td><td>Weight and cost</td></tr>
+<tr><td>Threaded / wire-ring head</td><td>Head screwed into or locked by a ring in the tube</td><td>Slim outside diameter</td><td>Thread or groove stress in the tube wall</td></tr>
+<tr><td>Plunger (ram)</td><td>The rod itself is the piston; single-acting</td><td>Very high push, simple, lifts and jacks</td><td>Return needs gravity or a load; buckling</td></tr>
+<tr><td>Telescopic</td><td>Nested stages extending in sequence</td><td>Long stroke from a short retracted length (tippers)</td><td>Stage-by-stage force and speed changes, stability</td></tr>
+<tr><td>Servo / position-sensing</td><td>Low-friction seals, internal transducer, high-response valve on the body</td><td>Precise motion control</td><td>Natural frequency, friction, cleanliness</td></tr></table></article>
+
+<article id="l-parts"><h2>Parts of a cylinder</h2>
+<ul><li><b>Tube (barrel)</b> — usually cold-drawn or skived-and-roller-burnished seamless steel tube, honed for the seals.</li>
+<li><b>Cap (bottom, blind end)</b> — closes the tube; carries a port and often the rear mounting.</li>
+<li><b>Head (gland)</b> — where the rod leaves: holds the rod seal, the rod bearing (guide), the wiper and often a buffer seal.</li>
+<li><b>Piston</b> — carries the piston seal and wear bands; fixed to the rod by a nut, a thread or a weld.</li>
+<li><b>Rod</b> — usually induction-hardened and hard-chrome-plated steel, polished; carries the load out.</li>
+<li><b>Seals</b> — piston seal (holds pressure across the piston), rod seal, buffer seal (shields the rod seal from pressure peaks), wiper (keeps dirt out), static seals (O-rings with back-up rings).</li>
+<li><b>Wear bands / guide rings</b> — keep metal off metal and take side load.</li>
+<li><b>Cushions</b> — a spear or collar that enters a pocket near the end of stroke, trapping oil to slow the piston; often with an adjustable needle and a check valve for a quick start.</li>
+<li><b>Ports</b> — threaded (SAE / ISO 6149, BSPP / ISO 1179) or flanged (SAE J518 / ISO 6162).</li>
+<li><b>Mountings and rod end</b> — flange, clevis, trunnion, foot or tie-rod extension; threaded rod end, rod eye or spherical bearing.</li></ul></article>
+
+<article id="l-process"><h2>The design process</h2>
+<ol><li><b>Define the job</b> — forces both ways, mass, orientation, stroke, speeds, cycle rate, pressure available, environment, duty and life.</li>
+<li><b>Choose the pressure</b> — working pressure from the power unit and the relief setting; higher pressure means a smaller cylinder but more stress everywhere.</li>
+<li><b>Size the bore</b> — from the push force (and the pull force with the rod), with margin for friction and pressure drop; round up to a standard bore (ISO 3320).</li>
+<li><b>Size the rod</b> — big enough not to buckle when pushing, fit the area ratio you want, round to a standard rod.</li>
+<li><b>Check speed and flow</b> — flow each way, pump size, oil volume, power, port and line velocities.</li>
+<li><b>Choose the mounting</b> — how the force goes into the machine; it sets the buckling length and the side loads.</li>
+<li><b>Check long strokes</b> — buckling, the stop tube, rod sag when horizontal.</li>
+<li><b>Size the tube wall</b> — against the maximum pressure, with your safety factor; check bore growth against seal extrusion gaps.</li>
+<li><b>Design the ends</b> — cap thickness, welds or tie rods, head retention, port bosses.</li>
+<li><b>Design the rod end and pins</b> — thread, eye, pin shear and bearing.</li>
+<li><b>Cushioning</b> — if speeds or masses are high, stop the load at the end of stroke without shock.</li>
+<li><b>Select seals and materials</b> — pressure, speed, temperature, fluid, friction, life.</li>
+<li><b>Tolerances and finishes</b> — bore and rod fits and surface finish from the seal maker; chrome thickness and hardness.</li>
+<li><b>Dynamics (servo use)</b> — natural frequency, stiffness, friction.</li>
+<li><b>Test and document</b> — proof and leak tests, cushion and function tests, drawings and inspection plan.</li></ol>
+<p>The <a href="#" onclick="CDshow('design');return false;">Design</a> tab follows this order.</p></article>
+
+<article id="l-formulas"><h2>Formulas used</h2>
+<table><tr><th>Check</th><th>Formula</th><th>Notes</th></tr>
+<tr><td>Force</td><td><code>F = p·A·η</code></td><td>η = mechanical efficiency (seal friction)</td></tr>
+<tr><td>Speed / flow</td><td><code>v = Q/A</code>, <code>Q = A·v</code></td><td>Cap port carries A1·v on retract</td></tr>
+<tr><td>Power</td><td><code>P = p·Q</code></td><td>Input power = P ÷ pump efficiency</td></tr>
+<tr><td>Intensification</td><td><code>p2 = p1·A1/A2</code></td><td>Meter-out, no load (worst case)</td></tr>
+<tr><td>Euler buckling</td><td><code>Pcr = π²EI/(KL)²</code></td><td>Slender rods; I = πd⁴/64</td></tr>
+<tr><td>Johnson buckling</td><td><code>Pcr = A·Sy·[1 − Sy(KL/r)²/(4π²E)]</code></td><td>Short rods, KL/r below √(2π²E/Sy); r = d/4</td></tr>
+<tr><td>Stroke factor method</td><td><code>basic length = (stroke + extension) × factor</code></td><td>Catalogue rod charts; stop tube 1 in per 10 in (or part) over 40 in</td></tr>
+<tr><td>Tube, thin wall</td><td><code>σ = p·Do/(2t)</code></td><td>Barlow</td></tr>
+<tr><td>Tube, thick wall</td><td><code>σθ = p(ro²+ri²)/(ro²−ri²)</code></td><td>Lamé, peak at the bore; von Mises with σr = −p and σz</td></tr>
+<tr><td>Flat cap, clamped</td><td><code>σ = 3pa²/(4t²)</code></td><td>Roark; simply supported 3(3+ν)pa²/(8t²)</td></tr>
+<tr><td>Thread</td><td><code>As = π/4·(d − 0.9382P)²</code></td><td>Metric (ISO 898-1); inch 0.7854(D − 0.9743/n)²</td></tr>
+<tr><td>Cushion</td><td><code>E = ½mv² + (F_drive + mg·sinθ)·s; p̄ = E/(Ac·s)</code></td><td>Average; the peak is higher</td></tr>
+<tr><td>Natural frequency</td><td><code>f = (1/2π)·√(β(A1²/V1 + A2²/V2)/m)</code></td><td>Lowest point over the stroke</td></tr></table></article>
+
+<article id="l-seals"><h2>Seals</h2>
+<p>Seals decide leakage, friction and life. Each has a job:</p>
+<ul><li><b>Rod seal</b> — keeps oil in as the rod moves out; must also let the oil film back in on the return stroke.</li>
+<li><b>Buffer seal</b> — sits in front of the rod seal and takes the pressure peaks, so the rod seal lasts.</li>
+<li><b>Wiper</b> — scrapes dirt and water off the rod; double-lip wipers also catch the oil film.</li>
+<li><b>Piston seal</b> — holds pressure across the piston; single-acting or double-acting. Drift under load usually starts here.</li>
+<li><b>Wear bands</b> — carry side load; never let the seal do the guiding.</li></ul>
+<h3>Common materials</h3>
+<table><tr><th>Material</th><th>Typical use</th></tr>
+<tr><td>Polyurethane (PU / AU / EU)</td><td>Rod seals, wipers, U-cups — tough, wear- and extrusion-resistant; check hot water and fluid compatibility</td></tr>
+<tr><td>Nitrile (NBR)</td><td>O-rings and energisers in mineral oil</td></tr>
+<tr><td>Fluorocarbon (FKM)</td><td>High temperature and aggressive fluids</td></tr>
+<tr><td>Filled PTFE</td><td>Low-friction step seals and piston seals (with an elastomer energiser) — servo and slow-speed use</td></tr>
+<tr><td>Polyacetal / polyamide / fabric-resin</td><td>Back-up rings, wear bands</td></tr></table>
+<h3>Extrusion gap</h3><p>Under pressure, a seal tries to squeeze into the clearance behind it. The gap grows with pressure (the tube balloons — step 5 shows the bore growth) and with wear and side load. Seal makers give a maximum gap for each pressure; back-up rings and harder materials resist extrusion.</p>
+<p>Use the seal maker's housing tables (groove sizes, fits and surface finish) — ISO 5597 and ISO 7425 standardise many housings.</p></article>
+
+<article id="l-mount"><h2>Mountings</h2>
+<p>The mounting decides how the force reaches the machine, how long the column is for buckling, and whether side loads are taken by the cylinder or the machine.</p>
+<table><tr><th>Group</th><th>Examples</th><th>Use</th></tr>
+<tr><td>Fixed, on the centreline</td><td>Head or cap flange, tie-rod extensions</td><td>Best for straight-line thrust; the machine must align the rod</td></tr>
+<tr><td>Fixed, off the centreline</td><td>Foot, side lugs, side-tapped</td><td>Low profile; the force creates a moment on the mounting bolts — use thrust keys or shear blocks</td></tr>
+<tr><td>Pivoting</td><td>Cap clevis, trunnions (head, intermediate, cap), spherical bearings</td><td>When the load moves in an arc; longest buckling length — needs a bigger rod</td></tr></table>
+<ul><li>Pair a pivoting mount with a pivoting rod end, in the same plane — otherwise the rod is bent.</li>
+<li>Side loads wear the bearing and seals; guide the load separately.</li>
+<li>Long horizontal strokes: the rod and tube sag under their own weight; supports or a stop tube help.</li></ul></article>
+
+<article id="l-mat"><h2>Materials and finishes</h2>
+<ul><li><b>Tube:</b> seamless cold-drawn or skived and roller-burnished steel tube, finished to a honed bore; stainless or aluminium for special cases. Weldability matters for welded bodies.</li>
+<li><b>Rod:</b> medium-carbon or alloy steel, induction-hardened under hard chrome for dent resistance; stainless, nitrided, nickel-chrome or laser-clad rods for corrosion. Chrome thickness, hardness and crack density are specified on the drawing.</li>
+<li><b>Heads, caps, pistons:</b> steel or ductile iron; bronze or polymer bearings in the head.</li>
+<li><b>Pins and bushes:</b> hardened alloy steel pins, greaseable bushes or spherical bearings.</li></ul>
+<p>Look up minimum yield strengths for your grades in <a href="https://harsh3261.github.io/materials-atlas/" rel="noopener">Materials Atlas</a> and enter them in the design steps — the app never assumes a material.</p></article>
+
+<article id="l-tol"><h2>Tolerances and surface finish</h2>
+<p>Bore and rod diameters are held to ISO fits chosen by the seal maker for the seal type and pressure; surface finish is specified as Ra together with Rz / Rmax and the material ratio Rmr — too rough wears seals, too smooth starves them of oil film. Take the numbers from your seal supplier's housing tables.</p>
+<p>Use <a href="https://harsh3261.github.io/spc-tools/" rel="noopener">SPC Tools</a> for ISO 286 fit limits, thread gauges, surface finish conversions and GD&amp;T.</p>
+<ul><li>Rod straightness and chrome thickness are checked before assembly.</li>
+<li>Concentricity of head, piston and tube controls seal life.</li>
+<li>Thread fits on the rod end and ports follow the thread standard (ISO 965, ASME B1.1).</li></ul></article>
+
+<article id="l-fail"><h2>Failures and troubleshooting</h2>
+<table><tr><th>Symptom</th><th>Likely causes</th><th>What to check</th></tr>
+<tr><td>Cylinder drifts under load</td><td>Piston seal bypass; valve spool leakage; oil temperature change</td><td>Bypass test (pressurise one side, measure flow from the other); test the valve separately</td></tr>
+<tr><td>Rod seal leaks</td><td>Scored or pitted chrome; side load; dirt past a worn wiper; pressure peaks; wrong finish</td><td>Rod surface, alignment, buffer seal, filtration</td></tr>
+<tr><td>Rod bent</td><td>Buckling; side load; misaligned mounts</td><td>Column check (step 4), mount alignment, pivot planes</td></tr>
+<tr><td>Bore scored / tube ballooned</td><td>Contamination; worn wear bands; over-pressure</td><td>Cleanliness (ISO 4406), relief setting, wall thickness</td></tr>
+<tr><td>Hard bang at end of stroke</td><td>No or mis-set cushion; speed too high</td><td>Cushion energy (step 9), needle setting</td></tr>
+<tr><td>Jerky slow motion (stick-slip)</td><td>Seal friction; air in the oil; low stiffness</td><td>Low-friction seals, bleed air, natural frequency (step 11)</td></tr>
+<tr><td>Burnt seals, black deposits</td><td>Air compressed in the oil ignites (diesel effect)</td><td>Bleeding, suction-side air leaks</td></tr>
+<tr><td>Head blown off / seals extruded on rod side</td><td>Intensification when metering out</td><td>p × φ against seal and head ratings (step 3)</td></tr>
+<tr><td>Mounting cracks</td><td>Fatigue from cyclic loads; off-centre mounts</td><td>Mount stress, weld quality, fatigue pressure rating</td></tr></table></article>
+
+<article id="l-test"><h2>Testing and inspection</h2>
+<ul><li><b>Proof (static) test</b> — hold a pressure above the rating and look for leaks and permanent deformation; the test pressure comes from your standard or customer.</li>
+<li><b>Leak tests</b> — external leakage at seals and joints; internal (bypass) leakage across the piston.</li>
+<li><b>Function test</b> — full stroke both ways, minimum operating pressure (breakaway), cushion adjustment, stroke length.</li>
+<li><b>Fatigue rating</b> — cyclic pressure testing of a design to prove its rated fatigue pressure.</li>
+<li><b>Incoming and in-process inspection</b> — tube bore size, roundness and finish; rod diameter, straightness, chrome thickness and hardness; thread gauging; weld inspection (visual, MT / PT, UT); cleanliness of the assembled cylinder.</li></ul>
+<p>Acceptance tests for hydraulic cylinders are standardised in ISO 10100; fatigue-pressure testing of fluid-power components in ISO 10771-1.</p></article>
+
+<article id="l-std"><h2>Standards map</h2>
+<table><tr><th>Standard</th><th>Covers</th></tr>
+<tr><td>ISO 3320</td><td>Cylinder bores and rod diameters, area ratios (metric)</td></tr>
+<tr><td>ISO 4393</td><td>Preferred piston strokes</td></tr>
+<tr><td>ISO 4395</td><td>Piston rod end threads</td></tr>
+<tr><td>ISO 6020-1/-2/-3</td><td>Mounting dimensions, 160 bar series</td></tr>
+<tr><td>ISO 6022</td><td>Mounting dimensions, 250 bar series</td></tr>
+<tr><td>ISO 5597, ISO 7425</td><td>Seal housings (piston and rod)</td></tr>
+<tr><td>ISO 10100</td><td>Acceptance tests for hydraulic cylinders</td></tr>
+<tr><td>ISO 10771-1</td><td>Fatigue pressure testing</td></tr>
+<tr><td>ISO 4406</td><td>Fluid cleanliness code</td></tr>
+<tr><td>ISO 4413</td><td>Safety rules for hydraulic systems</td></tr>
+<tr><td>ISO 1179, ISO 6149, ISO 6162</td><td>Ports: BSPP, metric O-ring boss, flanges</td></tr>
+<tr><td>NFPA T3.6.7</td><td>Square-head industrial cylinders, mounting dimensions</td></tr>
+<tr><td>NFPA T3.6.37</td><td>Cylinder buckling (rod + tube with bearing clearance)</td></tr>
+<tr><td>NFPA T2.6.1</td><td>Fatigue pressure rating of fluid-power components</td></tr></table>
+<p class="note">Check the current edition before you design to any of these.</p></article>
+
+<article id="l-gloss"><h2>Glossary</h2>
+<table><tr><td><b>Annulus</b></td><td>Rod-side piston area: bore area minus rod area.</td></tr>
+<tr><td><b>Area ratio φ</b></td><td>A1/A2; also the retract-to-extend speed ratio.</td></tr>
+<tr><td><b>Basic length</b></td><td>Stroke × stroke factor, used in catalogue rod-selection charts.</td></tr>
+<tr><td><b>Blind end / cap end</b></td><td>The end without the rod.</td></tr>
+<tr><td><b>Breakaway pressure</b></td><td>Lowest pressure that starts the piston moving.</td></tr>
+<tr><td><b>Bulk modulus β</b></td><td>Oil stiffness: how much it compresses under pressure.</td></tr>
+<tr><td><b>Gland</b></td><td>The head part holding the rod seal and bearing.</td></tr>
+<tr><td><b>Stall force</b></td><td>Force at the relief pressure — what the cylinder can push when blocked.</td></tr>
+<tr><td><b>Stop tube</b></td><td>Spacer on the rod that keeps piston and rod bearing apart on long strokes.</td></tr>
+<tr><td><b>Stroke factor</b></td><td>Multiplier from the mounting and rod-end connection.</td></tr>
+<tr><td><b>Wear band</b></td><td>Polymer ring that guides the piston or rod.</td></tr></table></article>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="view-refs" hidden>
+  <div class="hero"><h1>Sources</h1><p>Where each method and table comes from. Standard series and catalogue rules are checked against two independent sources; formulas are standard engineering texts.</p></div>
+  <div class="learn" style="grid-template-columns:1fr"><div><article><ul class="refs">
+<li><b>ISO 3320:2013</b> bores and rod diameters — preview of the standard (iTeh), cross-checked with ISO 3320:1987 / IS 8208:2004 and the DIN ISO 3320:2013 change list. Bore 60 mm withheld: DIN says it was deleted, the ISO preview lists it.</li>
+<li><b>ISO 4393:2015</b> piston strokes — preview of the standard (iTeh); Atos KTC cylinder catalogue lists the same series.</li>
+<li><b>Stroke factors</b> — Parker 2H Series (HY07-1110), Parker 0106 / HMI catalogues, Norgren NFPA cylinders catalogue, Atos KTC catalogue: identical factors.</li>
+<li><b>Stop tube rule</b> — Peninsular Cylinder, Milwaukee Cylinder design engineer's guide, Advance Automation, ARO cylinder catalogue.</li>
+<li><b>Rod-end pressure with meter-out, cushion method, 4 in/s (100 mm/s) cushion guidance</b> — Parker 0900 cylinder engineering data; Hydraulics &amp; Pneumatics, "Avoiding problems with hydraulic cylinders".</li>
+<li><b>Buckling</b> — Euler and J. B. Johnson column equations (Shigley's Mechanical Engineering Design; Machinery's Handbook). NFPA T3.6.37 named as the full method (not implemented).</li>
+<li><b>Tube</b> — Barlow and Lamé thick-cylinder equations (Shigley; Roark's Formulas for Stress and Strain).</li>
+<li><b>Flat plates</b> — Roark Table 11.2; RoyMech "Loaded flat plates"; Engineers Edge circular plate calculators.</li>
+<li><b>Thread stress area</b> — ISO 898-1 (metric) and ASME B1.1 / FED-STD-H28 (inch).</li>
+<li><b>Line velocity guidance</b> — STLE, "Cardinal sins of hydraulic system design"; HydraulicSupermarket, "Velocity and pressure drop in pipes". Shown side by side.</li>
+<li><b>Natural frequency</b> — H. J. Ulrich, "Some factors influencing the natural frequency of linear hydraulic actuators", Int. J. Mach. Tool Des. Res. 11 (1971); HAWE fluid lexicon; Delta Motion (4 × rule of thumb, via Power &amp; Motion).</li>
+<li><b>Bulk modulus range</b> — 1.4–1.7 GPa for mineral oil, lower with entrained air (Industrial Monitor Direct technical note).</li></ul>
+<h3>Not covered yet (named gaps)</h3><ul><li>NFPA T3.6.37 buckling with gland bearing clearance</li><li>Head retention design (thread, wire ring, bolted head)</li><li>Thread stripping and rod-eye section checks</li><li>Seal friction model; fatigue life of the tube and mounts</li><li>Bore 60 mm (ISO 3320 conflict)</li></ul></article></div></div>
+</section>
+</main>
+<footer class="wrap">Cylinder Designer · reference calculations for engineers — verify against your standard, suppliers' data and customer specification. Companion apps: <a href="https://harsh3261.github.io/materials-atlas/">Materials Atlas</a> · <a href="https://harsh3261.github.io/spc-tools/">SPC Tools</a></footer>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+<script>
+if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}
+</script>
+</body>
+</html>
