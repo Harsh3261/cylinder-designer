@@ -6,9 +6,10 @@ var CD = (function(){
   function area(d){ return PI * d * d / 4; }
 
   /* ---- Standard series (two sources each — see MUSE-NOTE) ----
-     ISO 3320:2013 Table 2 bores (mm); values in () are non-preferred. Source pair: ISO 3320:2013 preview text +
-     ISO 3320:1987 / IS 8208 (identical series). AL 60 withheld: DIN ISO 3320:2013 says it was deleted, the ISO 2013
-     preview text lists it — conflict, named gap. */
+     ISO 3320:2013 Table 2 bores (mm); values in () are non-preferred. Source pair: ISO 3320:2013 text (bore row of
+     Table 4: 25 32 40 50 63 80 (90) 100 (110) 125 (140) 160 (180) 200 (220) 250 (280) 320 (360) 400 (450) 500) +
+     ISO 3320:1987 / IS 8208. There is no bore 60: the DIN ISO 3320:2013 change list (AL 60 deleted) agrees; the "60"
+     seen earlier was the non-preferred ROD (60). Verified 2026-11-27. */
   var BORES = [8,10,12,16,20,25,32,40,50,63,80,[90],100,[110],125,[140],160,[180],200,[220],250,[280],320,[360],400,[450],500];
   /* ISO 3320:2013 Table 3 rods (mm): ISO 3320:1987 Table 2 + the 2013 changes stated by DIN ISO 3320:2013
      ((30), (60), 400, 450 added). */
@@ -17,10 +18,13 @@ var CD = (function(){
      series extended to 1250. */
   var STROKES = [5,10,25,50,80,100,125,160,200,250,320,400,500,630,800,1000,1250];
   /* NFPA inch series (inches). Bores 1.50–8.00: Parker Series H (HY08-AC1314), Bosch Rexroth NFPA (RA 17038),
-     Hydraulic Cylinders Inc. NFPA catalogue — all three agree. Rods 0.625–2.000: same three; 2.50–4.00: Parker Series H +
-     an independent NFPA size listing. Withheld (one source only): bore 7.00, rods 4.50–5.50, bores above 8.00 (GAPS.md). */
-  var NFPA_BORES = [1.5,2,2.5,3.25,4,5,6,8];
-  var NFPA_RODS = [0.625,1,1.375,1.75,2,2.5,3,3.5,4];
+     Hydraulic Cylinders Inc. NFPA catalogue — all three agree. 7.00: Parker Series H + Parker 0106 / HY08-0910 ("available
+     in 7 in bore") + Aventics NFPA bore list. 10, 12, 14: Parker 0106 + Aventics + Hydro-Line N5 (Danfoss).
+     Rods 0.625–2.000: Parker H, Rexroth, HCI; 2.50–4.00: Parker Series H + an independent NFPA size listing;
+     4.50: HCI catalogue + the same independent listing; 5.00: HCI + Vickers RE/RF (Danfoss); 5.50: HCI + Parker Series H.
+     Verified 2026-11-27. */
+  var NFPA_BORES = [1.5,2,2.5,3.25,4,5,6,7,8,10,12,14];
+  var NFPA_RODS = [0.625,1,1.375,1.75,2,2.5,3,3.5,4,4.5,5,5.5];
   function flat(list){ return list.map(function(v){ return Array.isArray(v) ? { v:v[0], np:true } : { v:v, np:false }; }); }
 
   /* ---- Stroke factors (catalogue piston-rod selection method). Basic length = (net stroke + extra rod
@@ -81,28 +85,35 @@ var CD = (function(){
      eigenvalue of K·φ = λ·Kg·φ by inverse iteration. Segments listed from end A (mount) to end B (rod end).
      Rigid joint at the gland: real cylinders have bearing clearance, so this is UNCONSERVATIVE vs NFPA T3.6.37
      (informative only; the rod-only check governs). End conditions: "pin", "fixed", "free". */
-  function steppedBuckling(segs, endA, endB, nPer){
-    nPer = nPer || 40; var nodes = [0], EI = [];
-    segs.forEach(function(s){ var h = s.L / nPer; for (var i = 0; i < nPer; i++){ nodes.push(nodes[nodes.length - 1] + h); EI.push(s.EI); } });
-    var ne = EI.length, n = 2 * (ne + 1);
+  function steppedBuckling(segs, endA, endB, nPer, Kjoint){
+    /* Kjoint (optional, N·m/rad): rotational spring between segment 1 and segment 2 — the gland / wear-ring joint
+       stiffness of Baragetti & Villa (2016). Omitted or Infinity = rigid joint (Timoshenko–Gere). */
+    nPer = nPer || 40; var x = [0], EI = [], seg = [];
+    segs.forEach(function(s, si){ var h = s.L / nPer; for (var i = 0; i < nPer; i++){ x.push(x[x.length - 1] + h); EI.push(s.EI); seg.push(si); } });
+    var ne = EI.length, spring = Kjoint > 0 && isFinite(Kjoint), jn = nPer; /* junction node (between seg 0 and 1) */
+    /* DOF map: node i -> v = 2i, θ = 2i+1; with a spring, the junction gets a second rotation DOF used by segment 2. */
+    var n = 2 * (ne + 1) + (spring ? 1 : 0), extra = 2 * (ne + 1);
     var K = zeros(n), Kg = zeros(n);
     for (var e = 0; e < ne; e++){
-      var L = nodes[e + 1] - nodes[e], k = EI[e] / (L * L * L), g = 1 / (30 * L), L2 = L * L;
+      var L = x[e + 1] - x[e], k = EI[e] / (L * L * L), g = 1 / (30 * L), L2 = L * L;
+      var dof = [2 * e, 2 * e + 1, 2 * e + 2, 2 * e + 3];
+      if (spring && e === jn) dof[1] = extra; /* first element of segment 2 uses the junction's second rotation */
       var ke = [[12,6*L,-12,6*L],[6*L,4*L2,-6*L,2*L2],[-12,-6*L,12,-6*L],[6*L,2*L2,-6*L,4*L2]];
       var kg = [[36,3*L,-36,3*L],[3*L,4*L2,-3*L,-L2],[-36,-3*L,36,-3*L],[3*L,-L2,-3*L,4*L2]];
-      for (var a = 0; a < 4; a++) for (var b = 0; b < 4; b++){ K[2*e+a][2*e+b] += k * ke[a][b]; Kg[2*e+a][2*e+b] += g * kg[a][b]; }
+      for (var a = 0; a < 4; a++) for (var b = 0; b < 4; b++){ K[dof[a]][dof[b]] += k * ke[a][b]; Kg[dof[a]][dof[b]] += g * kg[a][b]; }
     }
+    if (spring){ var t1 = 2 * jn + 1; K[t1][t1] += Kjoint; K[extra][extra] += Kjoint; K[t1][extra] -= Kjoint; K[extra][t1] -= Kjoint; }
     var fixedDof = [];
     function bc(t, node){ if (t === "pin" || t === "fixed") fixedDof.push(2 * node); if (t === "fixed") fixedDof.push(2 * node + 1); }
     bc(endA, 0); bc(endB, ne);
     var free = []; for (var i = 0; i < n; i++) if (fixedDof.indexOf(i) < 0) free.push(i);
     var Kr = free.map(function(i){ return free.map(function(j){ return K[i][j]; }); });
     var Gr = free.map(function(i){ return free.map(function(j){ return Kg[i][j]; }); });
-    var LU = lu(Kr), m = free.length, x = [], lam = 0, prev = 0;
-    for (i = 0; i < m; i++) x.push(Math.sin((i + 1) * 1.37) + 1);
-    for (var it = 0; it < 500; it++){
-      var y = luSolve(LU, mv(Gr, x)), nr = Math.sqrt(dot(y, y)); for (i = 0; i < m; i++) y[i] /= nr; x = y;
-      lam = dot(x, mv(Kr, x)) / dot(x, mv(Gr, x));
+    var LU = lu(Kr), m = free.length, v = [], lam = 0, prev = 0;
+    for (i = 0; i < m; i++) v.push(Math.sin((i + 1) * 1.37) + 1);
+    for (var it = 0; it < 800; it++){
+      var y = luSolve(LU, mv(Gr, v)), nr = Math.sqrt(dot(y, y)); for (i = 0; i < m; i++) y[i] /= nr; v = y;
+      lam = dot(v, mv(Kr, v)) / dot(v, mv(Gr, v));
       if (it > 5 && Math.abs(lam - prev) <= 1e-10 * Math.abs(lam)) break; prev = lam;
     }
     return lam;

@@ -14,7 +14,7 @@
     power:{ m:[1000,"kW",2], i:[745.69987,"hp",2] }, area:{ m:[1e-4,"cm²",2], i:[6.4516e-4,"in²",3] },
     vel:{ m:[1,"m/s",2], i:[0.3048,"ft/s",1] }, accel:{ m:[1,"m/s²",2], i:[0.3048,"ft/s²",1] },
     time:{ m:[1,"s",2], i:[1,"s",2] }, freq:{ m:[1,"Hz",1], i:[1,"Hz",1] }, deg:{ m:[1,"°",0], i:[1,"°",0] },
-    ratio:{ m:[1,"",3], i:[1,"",3] }, um:{ m:[1e-6,"µm",1], i:[2.54e-5,"thou",2] }, n:{ m:[1,"",0], i:[1,"",0] }
+    ratio:{ m:[1,"",3], i:[1,"",3] }, rstiff:{ m:[1,"N·m/rad",0], i:[0.112984829,"lbf·in/rad",0] }, um:{ m:[1e-6,"µm",1], i:[2.54e-5,"thou",2] }, n:{ m:[1,"",0], i:[1,"",0] }
   };
   var sys = "m";
   function uf(q){ return U[q][sys]; }
@@ -35,6 +35,7 @@
     ["p","press","Working pressure",160e5,"Pressure available at the cylinder when it does the work."],
     ["pmax","press","Maximum pressure (relief setting)",200e5,"The highest pressure the cylinder can ever see — all strength checks use this."],
     ["eff","ratio","Mechanical efficiency",1,"1.00 = theoretical. Enter less than 1 to allow for seal friction."],
+    ["meterOut","sel","Can the rod side be metered out or blocked?",["yes"],[["yes","Yes / not sure — check intensification (worst case)"],["no","No — rod side always free to tank"]]],
     /* 2 bore & rod */
     ["D","len","Bore",0.1,""], ["d","len","Rod diameter",0.07,""],
     /* 3 flow */
@@ -49,8 +50,9 @@
     ["Syrod","stress","Rod minimum yield strength",520e6,"Example value — enter your rod grade's minimum yield (Materials Atlas)."],
     ["SFb","ratio","Required buckling safety factor",3,"Set to your company or customer requirement."],
     ["stick","len","Rod stick-out when retracted (for the tube + rod model)",0.06,"Gland face to rod-end centre, rod fully in."],
+    ["Kf","rstiff","Gland joint rotational stiffness (optional)",null,"Wear rings and clearance make the rod–tube joint flexible. Baragetti & Villa (2016) report about 8,000–30,000 N·m/rad for a 20 mm rod; leave blank if unknown."],
     /* 5 tube */
-    ["Do","len","Tube outside diameter",0.121,""],
+    ["Do","len","Tube outside diameter",0.133,""],
     ["Sytube","stress","Tube minimum yield strength",355e6,"Example value — enter your tube grade's minimum yield."],
     ["Etube","mod","Tube elastic modulus",206e9,""],
     ["nu","ratio","Poisson's ratio",0.3,""],
@@ -71,6 +73,10 @@
     ["pinL","len","Pin bearing length (in the rod eye)",0.04,""],
     ["pinPlanes","sel","Pin shear planes",["2"],[["2","Double shear (clevis)"],["1","Single shear"]]],
     ["Sypin","stress","Pin minimum yield strength",640e6,"Example value."],
+    ["neck","len","Rod neck diameter at the rod-end thread relief (optional)",null,"Smallest diameter of the undercut behind the thread. Blank = no undercut."],
+    ["pistD","len","Piston-end thread major diameter (rod into piston / nut)",0.036,"Thread holding the piston on the rod."],
+    ["pistP","len","Piston-end thread pitch (metric)",0.002,""],
+    ["pistTPI","n","Piston-end threads per inch (inch)",12,""],
     /* 8 tie rods */
     ["constr","sel","Construction",["welded"],[["welded","Welded (cap welded to tube)"],["tierod","Tie-rod"],["mill","Mill type / bolted flanges"]]],
     ["nTie","n","Number of tie rods / bolts",4,""],
@@ -82,7 +88,7 @@
     ["cushCap","len","Cap-end cushion length (0 = none)",0.025,""],
     ["spear","len","Cap cushion spear diameter",0.04,"The spear enters the cap; the trapped annulus around it builds the cushion pressure."],
     ["cushRod","len","Rod-end cushion length (0 = none)",0.025,""],
-    ["collar","len","Rod cushion collar diameter",0.08,"Must be larger than the rod."],
+    ["collar","len","Rod cushion collar diameter",0.072,"Must be larger than the rod. A big collar leaves a small trapped annulus and a high cushion pressure."],
     ["pcush","press","Allowable cushion-chamber pressure",null,"The pressure your tube, cap/head and seals are rated for in the cushion chamber. Cushion pressure is always above the drive pressure × (driven area ÷ cushion area)."],
     /* 10 ports */
     ["portCap","len","Cap port passage diameter",0.02,"Smallest bore in the port path (drilling, fitting)."],
@@ -100,8 +106,8 @@
   /* Inch worked example (NFPA sizes) — loaded by "Load the example" when inch units are on. */
   var IN = 0.0254, PSI = 6894.757, LBF = 4.4482216;
   var EX_INCH = { Fpush:18000 * LBF, Fpull:6500 * LBF, mass:1100 * 0.45359237, stroke:24 * IN, vExt:4 * IN, vRet:6 * IN, p:2300 * PSI, pmax:2900 * PSI,
-    D:4 * IN, d:2.5 * IN, Lc:36 * IN, stick:2.5 * IN, ext:0, Do:4.75 * IN, tcap:1.25 * IN, weldA:0.3125 * IN, thrSys:"inch", thrD:1.875 * IN, thrTPI:12,
-    pinD:1.75 * IN, pinL:1.75 * IN, tieD:0.625 * IN, tieTPI:18, cushCap:1 * IN, spear:1.5 * IN, cushRod:1 * IN, collar:3 * IN,
+    D:4 * IN, d:2.5 * IN, Lc:36 * IN, stick:2.5 * IN, ext:0, Do:5.25 * IN, tcap:1.25 * IN, weldA:0.3125 * IN, thrSys:"inch", thrD:1.875 * IN, thrTPI:12,
+    pinD:1.75 * IN, pinL:1.75 * IN, pistD:1.5 * IN, pistTPI:12, tieD:0.625 * IN, tieTPI:18, cushCap:1 * IN, spear:1.5 * IN, cushRod:1 * IN, collar:2.625 * IN,
     portCap:0.75 * IN, portRod:0.75 * IN, V1d:30 * 1.6387e-5, V2d:30 * 1.6387e-5 };
   function loadExample(){ defaults(); if (sys === "i") for (var k in EX_INCH) S[k] = EX_INCH[k]; }
   defaults();
@@ -142,11 +148,27 @@
     if (S.Do > D && S.Lc > S.stick){
       var Lt = S.Lc - S.stick, Lr = S.stick + S.stroke, EIt = S.Etube * Math.PI * (Math.pow(S.Do, 4) - Math.pow(D, 4)) / 64, EIr = S.Erod * R.buck.I;
       try { R.stepped = CD.steppedBuckling([{ L:Lt, EI:EIt }, { L:Lr, EI:EIr }], bc[0], bc[1], 30); } catch(e){ R.stepped = null; }
+      if (S.Kf > 0){ try { R.steppedK = CD.steppedBuckling([{ L:Lt, EI:EIt }, { L:Lr, EI:EIr }], bc[0], bc[1], 30, S.Kf); } catch(e){ R.steppedK = null; } }
     }
+    /* cushions first: their chamber pressures feed the tube check. Gravity: the cap cushion stops the RETRACT stroke
+       (load moving down when the cylinder extends upward → gravity adds); the rod cushion stops the EXTEND stroke. */
+    var pc = S.pcush > 0 ? S.pcush : null, gCap = S.dir === "up" ? 90 : S.dir === "down" ? -90 : 0, gRod = -gCap;
+    R.pcAllow = pc;
+    if (S.cushCap > 0 && S.spear < D){ var Ac1 = R.f.A1 - CD.area(S.spear);
+      R.cCap = CD.cushion(S.mass, R.sp.ret, S.cushCap, Ac1, S.pmax * R.f.A2, gCap, 0); }
+    if (S.cushRod > 0 && S.collar > d && S.collar < D){ var Ac2 = R.f.A1 - CD.area(S.collar);
+      R.cRod = CD.cushion(S.mass, R.sp.ext, S.cushRod, Ac2, S.pmax * R.f.A1, gRod, 0); }
+    /* highest pressure any chamber of the tube can see */
+    R.pCh = [{ p:S.pmax, why:"relief setting" }];
+    if (S.meterOut !== "no") R.pCh.push({ p:R.pInt, why:"rod side, meter-out intensification" });
+    if (R.cCap) R.pCh.push({ p:R.cCap.pAvg, why:"cap cushion (average)" });
+    if (R.cRod) R.pCh.push({ p:R.cRod.pAvg, why:"rod cushion (average)" });
+    R.pChMax = R.pCh.reduce(function(a, b){ return b.p > a.p ? b : a; });
     /* tube */
     if (S.Do > D){
       R.tube = CD.tube(S.pmax, D, S.Do, S.Etube, S.nu); R.SFtube = S.Sytube / R.tube.vonMises;
-      R.minWall = CD.tubeMinWall(S.pmax, D, S.Sytube / S.SFt);
+      R.tubeCh = CD.tube(R.pChMax.p, D, S.Do, S.Etube, S.nu); R.SFtubeCh = S.Sytube / R.tubeCh.vonMises;
+      R.minWall = CD.tubeMinWall(R.pChMax.p, D, S.Sytube / S.SFt);
       if (S.ptest > 0){ R.tubeTest = CD.tube(S.ptest, D, S.Do, S.Etube, S.nu); R.SFtest = S.Sytube / R.tubeTest.vonMises; }
     }
     /* ends */
@@ -158,19 +180,17 @@
     R.Fpullmax = R.fmax.pull; R.thrStress = R.Fpullmax / R.As; R.SFthr = S.Syrod / R.thrStress;
     R.thrPush = R.fmax.push / R.As; R.SFthrPush = S.Syrod / R.thrPush;
     R.rodStress = R.fmax.push / R.f.Ar;
+    /* RETRACTION = tension: rod body, rod neck at the thread relief, piston-end thread (rod side at relief, cap to tank:
+       the piston nut / thread carries p·A2). */
+    R.rodTens = R.fmax.pull / R.f.Ar;
+    if (S.neck > 0 && S.neck < d) R.neckStress = R.fmax.pull / CD.area(S.neck);
+    R.AsP = S.pistD > 0 ? (S.thrSys === "inch" ? CD.stressAreaInch(S.pistD / 0.0254, S.pistTPI) : CD.stressAreaMetric(S.pistD, S.pistP)) : null;
+    if (R.AsP) { R.FpistThr = S.pmax * R.f.A2; R.pistStress = R.FpistThr / R.AsP; }
     var Fpin = Math.max(R.fmax.push, R.fmax.pull);
     R.pin = CD.pin(Fpin, S.pinD, S.pinL, +S.pinPlanes); R.Fpin = Fpin;
     R.SFpin = 0.577 * S.Sypin / R.pin.shear; /* shear yield ≈ 0.577·Sy (von Mises) */
     /* tie rods */
     if (S.constr !== "welded"){ var Ast = S.thrSys === "inch" ? CD.stressAreaInch(S.tieD / 0.0254, S.tieTPI) : CD.stressAreaMetric(S.tieD, S.tieP); R.tie = CD.tieRods(S.pmax, D, S.nTie, Ast); R.SFtie = S.Sytie / R.tie.stress; R.tieAs = Ast; }
-    /* cushions */
-    var pc = S.pcush > 0 ? S.pcush : null, ang = S.dir === "up" ? 90 : S.dir === "down" ? -90 : 0;
-    R.pcAllow = pc;
-    if (S.cushCap > 0 && S.spear < D){ var Ac1 = R.f.A1 - CD.area(S.spear);
-      /* cap cushion acts at the end of RETRACT: driving force = p on the rod side (A2); gravity helps if extend is up */
-      R.cCap = CD.cushion(S.mass, R.sp.ret, S.cushCap, Ac1, S.pmax * R.f.A2, -ang, 0); }
-    if (S.cushRod > 0 && S.collar > d && S.collar < D){ var Ac2 = R.f.A1 - CD.area(S.collar);
-      R.cRod = CD.cushion(S.mass, R.sp.ext, S.cushRod, Ac2, S.pmax * R.f.A1, ang, 0); }
     /* ports: cap port carries A1·v in both directions — on retract it carries the larger, regenerated-out flow */
     R.qPortCap = R.f.A1 * Math.max(R.sp.ext, R.sp.ret); R.qPortRod = R.f.A2 * Math.max(R.sp.ext, R.sp.ret);
     R.vCap = CD.velocity(R.qPortCap, S.portCap); R.vRod = CD.velocity(R.qPortRod, S.portRod);
@@ -186,20 +206,23 @@
     var C = [];
     function add(step, label, status, detail){ C.push({ step:step, label:label, status:status, detail:detail }); }
     var sfS = function(v, req){ return !isFinite(v) ? "na" : v >= req ? "pass" : v >= req * 0.85 ? "warn" : "fail"; };
-    add(2, "Push force at working pressure", R.f.push >= R.needPush ? "pass" : "fail", fmt(R.f.push,"force") + " available vs " + fmt(R.needPush,"force") + " needed");
-    add(2, "Pull force at working pressure", R.f.pull >= R.needPull ? "pass" : "fail", fmt(R.f.pull,"force") + " available vs " + fmt(R.needPull,"force") + " needed");
+    add(2, "Extension (push) force at working pressure", R.f.push >= R.needPush ? "pass" : "fail", fmt(R.f.push,"force") + " available vs " + fmt(R.needPush,"force") + " needed · stall at relief " + fmt(R.fmax.push,"force"));
+    add(2, "Retraction (pull) force at working pressure", R.f.pull >= R.needPull ? "pass" : "fail", fmt(R.f.pull,"force") + " available vs " + fmt(R.needPull,"force") + " needed · stall at relief " + fmt(R.fmax.pull,"force"));
     if (S.Q > 0) add(3, "Pump flow meets both speeds", S.Q >= R.qNeed * 0.999 ? "pass" : "warn", fmt(S.Q,"flow") + " available vs " + fmt(R.qNeed,"flow") + " needed");
-    add(3, "Rod-side pressure when metering out (no load)", R.pInt <= S.pmax ? "pass" : "warn", fmt(R.pInt,"press") + " — " + (R.pInt > S.pmax ? "exceeds the relief setting; rod-side components see this" : "within the maximum"));
+    if (S.meterOut !== "no") add(3, "Rod-side pressure when metering out (no load)", R.pInt <= S.pmax ? "pass" : "warn", fmt(R.pInt,"press") + " = relief × φ — " + (R.pInt > S.pmax ? "above the relief setting: rod seals, head retention, rod-side port and tube are checked at it" : "within the maximum"));
     add(4, "Rod buckling at maximum pressure", sfS(R.SFbuck, S.SFb), "safety factor " + num(R.SFbuck) + " (required " + num(S.SFb) + "), " + R.buck.mode.split(" (")[0]);
     add(4, "Stop tube", R.stopTube > 0 ? "warn" : "pass", R.stopTube > 0 ? "recommended: " + fmt(R.stopTube,"len") + " (basic length " + fmt(R.basic,"len") + ")" : "not needed (basic length " + fmt(R.basic,"len") + ")");
-    if (R.tube) add(5, "Tube at maximum pressure (von Mises, bore)", sfS(R.SFtube, S.SFt), "safety factor " + num(R.SFtube) + " (required " + num(S.SFt) + ")");
+    if (R.tube) add(5, "Tube at the highest chamber pressure (von Mises, Lamé)", sfS(R.SFtubeCh, S.SFt), "safety factor " + num(R.SFtubeCh) + " at " + fmt(R.pChMax.p,"press") + " (" + R.pChMax.why + "); at relief " + num(R.SFtube));
     else add(5, "Tube", "fail", "tube outside diameter must be larger than the bore");
     if (R.tubeTest) add(5, "Tube at test pressure", R.SFtest >= 1 ? "pass" : "fail", "safety factor on yield " + num(R.SFtest));
     add(6, "Cap (flat end) bending", sfS(R.SFcap, S.SFt), "safety factor " + num(R.SFcap) + "; minimum thickness " + fmt(R.capMinT,"len"));
     if (R.weld) add(6, "Cap weld shear", sfS(R.SFweld, 1), "safety factor on allowable " + num(R.SFweld));
     add(7, "Rod-end thread (pull at maximum pressure)", sfS(R.SFthr, S.SFt), "safety factor " + num(R.SFthr) + " on rod yield");
     add(7, "Rod-end thread if push goes through the thread", sfS(R.SFthrPush, S.SFt), "safety factor " + num(R.SFthrPush) + " — passes if a shoulder carries the push");
-    add(7, "Rod body compressive stress", sfS(S.Syrod / R.rodStress, S.SFt), fmt(R.rodStress,"stress") + " (safety factor " + num(S.Syrod / R.rodStress) + ")");
+    add(7, "Rod body in compression (extension stall)", sfS(S.Syrod / R.rodStress, S.SFt), fmt(R.rodStress,"stress") + " (safety factor " + num(S.Syrod / R.rodStress) + ")");
+    add(7, "Rod body in tension (retraction stall)", sfS(S.Syrod / R.rodTens, S.SFt), fmt(R.rodTens,"stress") + " (safety factor " + num(S.Syrod / R.rodTens) + ")");
+    if (R.neckStress) add(7, "Rod neck at the thread relief (retraction stall)", sfS(S.Syrod / R.neckStress, S.SFt), fmt(R.neckStress,"stress") + " (safety factor " + num(S.Syrod / R.neckStress) + ")");
+    if (R.AsP) add(7, "Piston-to-rod thread (rod side at relief, cap to tank)", sfS(S.Syrod / R.pistStress, S.SFt), fmt(R.pistStress,"stress") + " on the stress area (safety factor " + num(S.Syrod / R.pistStress) + ")");
     add(7, "Rod-end pin shear", sfS(R.SFpin, S.SFt), "safety factor " + num(R.SFpin) + " on shear yield");
     if (R.tie) add(8, "Tie rods / bolts", sfS(R.SFtie, S.SFt), "safety factor " + num(R.SFtie) + " at maximum pressure, before preload");
     var cst = function(c){ return R.pcAllow ? (c.pAvg <= R.pcAllow ? "pass" : "fail") : "warn"; };
@@ -240,14 +263,17 @@
   function chip(st){ return '<i class="chip ' + st + '">' + { pass:"OK", warn:"Check", fail:"Fails", na:"—" }[st] + "</i>"; }
 
   var STEPS = [
-    { n:1, t:"Application", sub:"What the cylinder must do", f:["Fpush","Fpull","mass","dir","stroke","vExt","vRet","p","pmax","eff"],
+    { n:1, t:"Application", sub:"What the cylinder must do", f:["Fpush","Fpull","mass","dir","stroke","vExt","vRet","p","pmax","eff","meterOut"],
       out:function(R){ return row("Push needed incl. weight", fmt(R.needPush,"force")) + row("Pull needed incl. weight", fmt(R.needPull,"force")); } },
     { n:2, t:"Bore and rod", sub:"Size the piston from force ÷ pressure", f:["D","d"],
       out:function(R){ return row("Smallest bore for the forces", fmt(R.reqBore > R.reqBorePull ? R.reqBore : R.reqBorePull,"len")) +
         row("Smallest ISO 3320 bore that works", R.isoBore ? R.isoBore.v + " mm" : "above 500 mm") +
         row("Cap-side area A1", fmt(R.f.A1,"area")) + row("Rod-side area A2", fmt(R.f.A2,"area")) + row("Area ratio φ = A1/A2", num(R.f.ratio,3)) +
-        row("Push at working pressure", fmt(R.f.push,"force")) + row("Pull at working pressure", fmt(R.f.pull,"force")) +
-        row("Push at maximum pressure (stall)", fmt(R.fmax.push,"force")) + row("Pull at maximum pressure", fmt(R.fmax.pull,"force")); } },
+        '<h4>Forces both ways</h4><table class="ft"><tr><th></th><th>Extension (push)</th><th>Retraction (pull)</th></tr>' +
+        "<tr><td>Needed (incl. weight)</td><td>" + fmt(R.needPush,"force") + "</td><td>" + fmt(R.needPull,"force") + "</td></tr>" +
+        "<tr><td>At working pressure</td><td>" + fmt(R.f.push,"force") + "</td><td>" + fmt(R.f.pull,"force") + "</td></tr>" +
+        "<tr><td>At relief — stall, used for strength</td><td><b>" + fmt(R.fmax.push,"force") + "</b></td><td><b>" + fmt(R.fmax.pull,"force") + "</b></td></tr>" +
+        "<tr><td>Loads the rod in</td><td>compression + buckling</td><td>tension (body, neck, threads)</td></tr></table>"; } },
     { n:3, t:"Speed, flow and power", sub:"Flow = area × speed", f:["Q","etaP"],
       out:function(R){ return row("Flow for the extend speed", fmt(R.qExt,"flow")) + row("Flow for the retract speed", fmt(R.qRet,"flow")) +
         row("Pump flow to size for", fmt(R.qNeed,"flow"), "hl") + row("Extend speed at " + fmt(R.Q,"flow"), fmt(R.sp.ext,"speed")) + row("Retract speed", fmt(R.sp.ret,"speed")) +
@@ -257,19 +283,23 @@
         row("Hydraulic power at working pressure", fmt(R.powerHyd,"power")) + row("Pump input power (÷ efficiency)", fmt(R.powerIn,"power")) +
         row("Regenerative extend: speed / force", fmt(R.regen.speed,"speed") + " / " + fmt(R.regen.force,"force")) +
         row("Rod-side pressure, meter-out, no load (p·A1/A2)", fmt(R.pInt,"press"), R.pInt > S.pmax ? "bad" : ""); } },
-    { n:4, t:"Rod buckling", sub:"Push loads: the rod is a column", f:["mount","ext","Lc","K","Erod","Syrod","SFb","stick"],
+    { n:4, t:"Rod buckling", sub:"Extension loads: the rod is a column", f:["mount","ext","Lc","K","Erod","Syrod","SFb","stick","Kf"],
       out:function(R){ var b = R.buck; return row("Pin-to-pin length, extended", fmt(R.Lext,"len")) + row("Force checked (stall at maximum pressure)", fmt(R.Fbuck,"force")) +
         row("Slenderness KL/r (transition " + num(b.transition,0) + ")", num(b.slenderness,0)) + row("Method", b.mode) +
         row("Critical load", fmt(b.Pcr,"force")) + row("Safety factor", num(R.SFbuck), R.SFbuck < S.SFb ? "bad" : "good") +
         row("Smallest ISO rod for the required factor", R.minRod ? (R.minRod.d * 1000) + " mm" : "none up to 450 mm") +
         '<h4>Catalogue method (stroke factor)</h4>' + row("Stroke factor", R.sfac.f.toFixed(1)) + row("Basic length = (stroke + extension) × factor", fmt(R.basic,"len")) +
         row("Stop tube", R.stopTube > 0 ? fmt(R.stopTube,"len") : "not needed", R.stopTube > 0 ? "hl" : "") +
-        (R.stepped ? '<h4>Tube + rod as one stepped column (informative)</h4>' + row("Critical load, rigid gland joint", fmt(R.stepped,"force")) +
-          '<p class="note">Treats the gland joint as rigid, so it overstates the real strength — bearing clearance lets the rod tilt (NFPA T3.6.37 includes this; this app does not). Design to the rod-only check above.</p>' : ""); } },
+        (R.stepped ? '<h4>Tube + rod as one column (informative)</h4>' +
+          row("Rigid gland joint — upper bound (Timoshenko–Gere)", fmt(R.stepped,"force") + " · factor " + num(R.stepped / R.Fbuck)) +
+          (R.steppedK ? row("With gland joint stiffness Kf (Baragetti & Villa 2016)", fmt(R.steppedK,"force") + " · factor " + num(R.steppedK / R.Fbuck), R.steppedK / R.Fbuck < S.SFb ? "bad" : "good") : "") +
+          '<p class="note">Finite-element two-segment column, verified against Baragetti &amp; Villa 2016 (rigid 3,855 N; Kf models 3,111 N and 3,629 N reproduced). A rigid joint overstates strength; real wear rings and clearance make it flexible — enter Kf to include that. The rod-only check above stays the governing, conservative check. DNV-GL CG-0194 asks for buckling load / actual load ≥ 4 with its own formula (not implemented: its Z term could not be read from a free source). ISO/TS 13725 is a different, maximum-allowable-load method and is not implemented.</p>' : ""); } },
     { n:5, t:"Tube (barrel)", sub:"Wall thickness against bursting", f:["Do","Sytube","Etube","nu","SFt","ptest"],
       out:function(R){ if (!R.tube) return '<p class="bad">The tube outside diameter must be larger than the bore.</p>';
         var t = R.tube; return row("Wall thickness", fmt(t.t,"len")) + row("Hoop stress, Barlow (thin wall)", fmt(t.barlow,"stress")) + row("Hoop stress at the bore, Lamé", fmt(t.hoop,"stress")) +
-        row("Axial stress (closed ends)", fmt(t.axial,"stress")) + row("von Mises at the bore", fmt(t.vonMises,"stress")) + row("Safety factor on yield", num(R.SFtube), R.SFtube < S.SFt ? "bad" : "good") +
+        row("Axial stress (closed ends)", fmt(t.axial,"stress")) + row("von Mises at the bore, at relief", fmt(t.vonMises,"stress")) + row("Safety factor on yield, at relief", num(R.SFtube), R.SFtube < S.SFt ? "bad" : "good") +
+        '<h4>Highest pressure any chamber can see</h4>' + R.pCh.map(function(c){ return row(c.why, fmt(c.p,"press"), c === R.pChMax ? "hl" : ""); }).join("") +
+        row("von Mises at " + fmt(R.pChMax.p,"press"), fmt(R.tubeCh.vonMises,"stress")) + row("Safety factor at the highest pressure", num(R.SFtubeCh), R.SFtubeCh < S.SFt ? "bad" : "good") +
         row("Minimum wall for the required factor", fmt(R.minWall,"len")) + row("Bore growth under maximum pressure (on diameter)", fmt(2 * t.growth,"um")) +
         (R.tubeTest ? row("von Mises at test pressure", fmt(R.tubeTest.vonMises,"stress")) + row("Safety factor at test pressure", num(R.SFtest), R.SFtest < 1 ? "bad" : "") : "") +
         '<p class="note">Bore growth widens the extrusion gap at the piston seal — check it against the seal maker\'s gap limit at your pressure.</p>'; } },
@@ -278,10 +308,12 @@
         row("Minimum cap thickness for the required factor", fmt(R.capMinT,"len")) +
         (R.weld ? row("End load on the weld (p × A1)", fmt(R.weld.F,"force")) + row("Weld throat shear", fmt(R.weld.shear,"stress")) + row("Factor on allowable", num(R.SFweld), R.SFweld < 1 ? "bad" : "good") : "") +
         '<p class="note">The head (gland end) is retained by threads, a wire ring, bolts or tie rods; each needs its own check against the same end load p × A1. Not covered here (named gap).</p>'; } },
-    { n:7, t:"Rod end, thread and pin", sub:"Where the load enters the rod", f:["thrSys","thrD","thrP","thrTPI","pinD","pinL","pinPlanes","Sypin"],
+    { n:7, t:"Rod, threads and pin", sub:"Compression on extension, tension on retraction", f:["thrSys","thrD","thrP","thrTPI","neck","pistD","pistP","pistTPI","pinD","pinL","pinPlanes","Sypin"],
       out:function(R){ return row("Thread tensile stress area", fmt(R.As,"area")) + row("Pull at maximum pressure", fmt(R.Fpullmax,"force")) +
         row("Thread stress on pull", fmt(R.thrStress,"stress")) + row("Safety factor (rod yield)", num(R.SFthr), R.SFthr < S.SFt ? "bad" : "good") +
-        row("Rod body stress at stall push", fmt(R.rodStress,"stress")) +
+        row("Rod body, compression at stall push", fmt(R.rodStress,"stress")) + row("Rod body, tension at stall pull", fmt(R.rodTens,"stress")) +
+        (R.neckStress ? row("Rod neck at the thread relief, stall pull", fmt(R.neckStress,"stress"), S.Syrod / R.neckStress < S.SFt ? "bad" : "good") : "") +
+        (R.AsP ? row("Piston thread load (relief on rod side × A2)", fmt(R.FpistThr,"force")) + row("Piston thread stress", fmt(R.pistStress,"stress"), S.Syrod / R.pistStress < S.SFt ? "bad" : "good") : "") +
         row("Pin load (larger of push / pull)", fmt(R.Fpin,"force")) + row("Pin shear stress", fmt(R.pin.shear,"stress")) + row("Pin bearing pressure", fmt(R.pin.bearing,"stress")) +
         row("Pin safety factor (shear yield ≈ 0.577 Sy)", num(R.SFpin), R.SFpin < S.SFt ? "bad" : "good") +
         '<p class="note">Thread stress uses the tensile stress area (ISO 898-1 / ASME B1.1). Thread stripping and the rod eye section are separate checks.</p>'; } },
@@ -321,7 +353,7 @@
   }
   function visibility(){
     var inch = S.thrSys === "inch";
-    toggle("thrP", !inch); toggle("thrTPI", inch);
+    toggle("thrP", !inch); toggle("thrTPI", inch); toggle("pistP", !inch); toggle("pistTPI", inch);
     var tie = S.constr !== "welded"; ["nTie","tieD","tieP","tieTPI","Sytie"].forEach(function(k){ toggle(k, tie); }); if (tie){ toggle("tieP", !inch); toggle("tieTPI", inch); } toggle("weldA", !tie); toggle("weldS", !tie);
   }
   function toggle(k, on){ var el = $("in-" + k); if (el) el.closest(".fld").style.display = on ? "" : "none"; }

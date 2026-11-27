@@ -58,11 +58,29 @@ const nf = CD.natFreq(1.4e9, 0.005, 0.005, 0.4, 0, 0, 1000);
 near("natural freq symmetric min at mid", nf.f, Math.sqrt(1.4e9 * 2 * 0.005 * 0.005 / (0.005 * 0.2) / 1000) / (2 * PI), 1e-9); near("min at mid-stroke", nf.x, 0.2);
 /* standard series sanity */
 ok("bores include 100 & 500", CD.BORES.some(x => x.v === 100) && CD.BORES.some(x => x.v === 500));
-ok("no bore 60 (named gap)", !CD.BORES.some(x => x.v === 60));
+ok("no bore 60 (ISO 3320:2013 bore list)", !CD.BORES.some(x => x.v === 60));
 ok("rods 4..450", CD.RODS[0].v === 4 && CD.RODS[CD.RODS.length - 1].v === 450);
 ok("stroke factors 10 rows", CD.STROKE_FACTORS.length === 10);
 const mr = CD.minRod(50e3, 3, 206e9, 520e6, 2, 1); ok("minRod meets SF", mr && mr.Pcr / 50e3 >= 3);
-ok("NFPA bores 1.5–8 without 7", CD.NFPA_BORES.join() === "1.5,2,2.5,3.25,4,5,6,8");
-ok("NFPA rods 0.625–4", CD.NFPA_RODS.join() === "0.625,1,1.375,1.75,2,2.5,3,3.5,4");
+/* Baragetti & Villa 2016 (Math. Probl. Eng., Article 3781397), Table 1 actuator: rod 20 mm (Js 7854 mm⁴), cylinder
+   25/30 mm (Jc from the stated diameters = 20,586 mm⁴ — Table 1 prints 16,286, inconsistent with its own diameters),
+   a = 1163 mm rod, b = 1276 mm cylinder, E = 206,000 MPa, pinned–pinned. Table 3 limit loads: Timoshenko rigid 3855 N;
+   "2 wear rings, rod only" Kf = 8071·10³ N·mm/rad → 3111 N; "4 wear rings" Kf = 29777·10³ N·mm/rad → 3629 N. */
+{ const Eb = 206000e6, Js = 7854e-12, Jc = Math.PI * (Math.pow(0.030, 4) - Math.pow(0.025, 4)) / 64, sg = [{ L:1.276, EI:Eb * Jc }, { L:1.163, EI:Eb * Js }];
+  near("Baragetti rigid (Timoshenko) 3855 N", CD.steppedBuckling(sg, "pin", "pin", 60), 3855, 1e-3);
+  near("Baragetti Kf 8071e3 N·mm/rad → 3111 N", CD.steppedBuckling(sg, "pin", "pin", 60, 8071), 3111, 1e-3);
+  near("Baragetti Kf 29777e3 N·mm/rad → 3629 N", CD.steppedBuckling(sg, "pin", "pin", 60, 29777), 3629, 1e-3);
+  /* Baragetti Eq. 11 (rigid joint characteristic equation) solved independently by scanning + bisection */
+  const a = 1.163, b = 1.276, f = P => { const as = Math.sqrt(P / (Eb * Js)), ac = Math.sqrt(P / (Eb * Jc)); return as * (Math.tan(ac * a) - Math.tan(ac * (a + b))) - ac * Math.tan(as * a) * (1 + Math.tan(ac * a) * Math.tan(ac * (a + b))); };
+  let root = NaN, pv = f(100); for (let P = 101; P < 20000; P++){ const v = f(P); if (pv * v < 0 && Math.abs(v) < 50 && Math.abs(pv) < 50){ let L = P - 1, H = P; for (let k = 0; k < 60; k++){ const M = (L + H) / 2; if (f(L) * f(M) <= 0) H = M; else L = M; } root = (L + H) / 2; break; } pv = v; }
+  near("FE rigid = Baragetti Eq. 11 root", CD.steppedBuckling(sg, "pin", "pin", 60), root, 1e-3);
+  const r0 = CD.steppedBuckling(sg, "pin", "pin", 60), k1 = CD.steppedBuckling(sg, "pin", "pin", 60, 1e3), k2 = CD.steppedBuckling(sg, "pin", "pin", 60, 1e6);
+  ok("joint stiffness monotonic and bounded by rigid", k1 < k2 && k2 <= r0 * 1.000001);
+}
+/* cushion gravity sign: load moving DOWN into the cushion (angle +90) must absorb more energy than horizontal */
+{ const down = CD.cushion(500, 0.2, 0.025, 0.004, 0, 90, 0), flat = CD.cushion(500, 0.2, 0.025, 0.004, 0, 0, 0);
+  near("cushion: falling load adds m·g·s", down.E - flat.E, 500 * CD.G * 0.025); }
+ok("NFPA bores 1.5–14", CD.NFPA_BORES.join() === "1.5,2,2.5,3.25,4,5,6,7,8,10,12,14");
+ok("NFPA rods 0.625–5.5", CD.NFPA_RODS.join() === "0.625,1,1.375,1.75,2,2.5,3,3.5,4,4.5,5,5.5");
 if (fails.length){ console.log("FAIL " + fails.length + "/" + n + "\n" + fails.join("\n")); process.exit(1); }
 console.log("OK " + n + " engine checks");

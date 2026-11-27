@@ -1,3 +1,62 @@
+# Note for Muse — v3: real two-direction worst-case checker + gap wave (2026-11-27)
+
+## 1. Buckling (old gap 1) — what was closable for free, and what was not
+- DONE (route B): tube + rod column with gland joint stiffness Kf, per Baragetti & Villa 2016 (Math. Probl. Eng.
+  3781397, open PDF at aisberg.unibg.it). The FE model (Euler–Bernoulli + geometric stiffness, rotational spring at the
+  gland) reproduces their Table 3: rigid (Timoshenko) 3855 N → app 3855.5; Kf 8071·10³ N·mm/rad → 3111.1 (paper 3111);
+  Kf 29777·10³ → 3629.4 (paper 3629). Their own Eq. 11 (rigid characteristic equation), solved independently in the
+  test, gives the same 3856 N.
+  Paper inconsistency recorded: Table 1 prints Jc = 16,286 mm⁴, but its stated 25/30 mm cylinder gives 20,586 mm⁴; only
+  20,586 reproduces 3855 N. Table 1 Kf 26,111·10³ matches neither Table 3 row.
+- NOT DONE (route A, DNV): Narvydas 2016 (KTU open PDF) + DNVGL-CG-0194 confirm the structure PE = π²E/(L·Z) with
+  Z(I1, I2, L1, L2) and acceptance PE/Pa ≥ 4 (≥ 2.7 with approved accurate methods; cranes 2.3). The Z expression did not
+  survive text extraction from ANY free copy I could reach (DNV PDF robots-blocked for my fetcher; KTU, studylib, Gale,
+  researchgate copies garble it). → Gap 1a. REQUEST: Satureday, please quote CG-0194 §4 Z verbatim from the DNV PDF
+  (or Narvydas Eq. 4); I will implement and test it against Narvydas Table 1 the same day.
+- App labelling: rod-only Euler/Johnson stays the GOVERNING check. Tube + rod is shown as "informative": rigid joint
+  (upper bound) and, if Kf is entered, the Baragetti joint-stiffness result with its factor. The DNV ≥ 4 criterion is
+  quoted as DNV's, not applied to a non-DNV result. ISO/TS 13725 (max allowable load vs rod yield) named as different and
+  not implemented (1b).
+
+## 2. Real checker, both directions, worst case (Harsh's directive)
+- Step 2 now shows a force table: extension vs retraction × needed / working / relief-stall, and what each does to
+  the rod (compression + buckling vs tension).
+- RETRACTION (tension) checks added, all at relief stall: rod body tension; rod neck at the thread relief (new optional
+  input); piston-to-rod thread (new inputs: piston-end thread d × P / TPI), load = relief × A2 (rod side pressurised,
+  cap to tank — the nut/thread holds the piston); rod-end thread on pull (existing).
+- EXTENSION: rod compression, rod buckling (governing), stepped column informative, stop tube.
+- INTENSIFICATION: new input "Can the rod side be metered out or blocked?" (default yes = worst case). The tube is now
+  checked at the HIGHEST chamber pressure: max(relief, relief·φ, cap-cushion p̄, rod-cushion p̄), with the governing
+  case named. Previously the tube was checked at relief only — unconservative when φ > 1 or with cushions.
+- Every check label says direction + load case; Sources/Learn list method + source.
+
+## 3. Adversarial self-review — bugs found and fixed
+1. Cushion gravity SIGN was inverted at both cushions (vertical cylinders): cap cushion (end of retract) on an
+   upward-extending cylinder must ADD m·g (load falling into it); it subtracted. Fixed; engine test added.
+2. Tube check at relief only (see above) — fixed.
+3. Worked examples: with the tube now checked at cushion pressure, the metric example's 80 mm rod collar in a 100 mm bore
+   gave 556 bar average cushion pressure → tube safety factor 1.17 (real physics: relief × A1 / small annulus). Example
+   changed to collar 72 mm + tube OD 133 mm (415 bar, SF 2.14); inch example collar 2.625 in + tube OD 5.25 in.
+   Both examples: 14 OK, 4 to check, 0 failing.
+4. Cushion drive pressure kept at RELIEF (worst case per Harsh). Parker's method uses operating pressure; flagged here.
+
+## 4. Gap wave
+- Closed: #4 (no ISO 3320 bore 60 — standard's bore list + DIN), #10 (NFPA 7.00, 10, 12, 14 in bores; 4.50, 5.00,
+  5.50 in rods — sources in engine.js), old #1 substance (route B).
+- Researched, still open, with the route recorded: 1a DNV Z, 1b ISO/NFPA text, 1c Kf from geometry, 2 head retention,
+  3 stripping / rod eye, 5 rod (120) conflict, 6 Table 4, 7 ISO 4395 pairing (3 agreeing pairs found), 8 friction /
+  fatigue, 9 peak cushion. See GAPS.md.
+
+## Verification
+tests/engine.test.js: 50 checks (new: Baragetti rigid 3855, Kf 3111, Kf 3629, Eq. 11 root, Kf monotonic, cushion
+gravity, NFPA series). Headless desktop + iPhone, metric and inch examples: 0 page errors, no sideways scroll.
+sw.js cylinder-designer-v3-checker.
+
+Smoke values for live verification (metric example): status 14 OK / 4 to check / 0 failing; push stall 157.08 kN;
+pull stall 80.11 kN; tube SF 2.14 at 415.5 bar (rod cushion); piston thread SF 5.94; rod tension SF 24.98.
+
+---
+
 # Note for Muse — v2: full imperial (NFPA) support (2026-11-23)
 
 Harsh: "some people use imperial as well". The in·psi switch already converted every input and result; what was

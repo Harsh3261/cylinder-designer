@@ -63,6 +63,7 @@ select.iso{margin-top:4px;font-size:12px;padding:5px;color:var(--mut)}
 .chip.pass{background:#173a2a;color:#6fe0a6}.chip.warn{background:#3d3216;color:#f2cd6b}.chip.fail{background:#43201b;color:#ff9a8a}.chip.na{background:var(--panel2);color:var(--mut)}
 table.rep{width:100%;border-collapse:collapse;font-size:13.5px}table.rep th,table.rep td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 table.rep th{color:var(--mut);font-weight:600;font-size:12px}
+table.ft{width:100%;border-collapse:collapse;font-size:13px;margin:4px 0}table.ft th,table.ft td{text-align:left;padding:5px 6px;border-bottom:1px dashed #222a37}table.ft th{color:var(--mut);font-weight:600}table.ft td:first-child{color:var(--mut)}table.ft td{font-family:var(--m)}table.ft td:first-child{font-family:var(--f)}
 .sum{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 12px}.actions{margin-top:12px}
 /* learn */
 .learn{display:grid;grid-template-columns:220px 1fr;gap:18px;align-items:start;padding-bottom:40px}
@@ -168,6 +169,9 @@ footer{color:var(--mut);font-size:12.5px;padding:20px 0 calc(30px + env(safe-are
 <tr><td>Intensification</td><td><code>p2 = p1·A1/A2</code></td><td>Meter-out, no load (worst case)</td></tr>
 <tr><td>Euler buckling</td><td><code>Pcr = π²EI/(KL)²</code></td><td>Slender rods; I = πd⁴/64</td></tr>
 <tr><td>Johnson buckling</td><td><code>Pcr = A·Sy·[1 − Sy(KL/r)²/(4π²E)]</code></td><td>Short rods, KL/r below √(2π²E/Sy); r = d/4</td></tr>
+<tr><td>Tube + rod column</td><td><code>two-segment column, gland joint spring Kf</code></td><td>Finite elements; rigid joint = Timoshenko–Gere upper bound; Kf per Baragetti &amp; Villa 2016</td></tr>
+<tr><td>Retraction (tension)</td><td><code>σ = F_pull,stall / A</code></td><td>Rod body, rod neck at the thread relief, thread stress areas; piston thread carries p·A2</td></tr>
+<tr><td>Highest chamber pressure</td><td><code>max(relief, relief·φ, cushion p̄)</code></td><td>The tube is checked at the worst of these</td></tr>
 <tr><td>Stroke factor method</td><td><code>basic length = (stroke + extension) × factor</code></td><td>Catalogue rod charts; stop tube 1 in per 10 in (or part) over 40 in</td></tr>
 <tr><td>Tube, thin wall</td><td><code>σ = p·Do/(2t)</code></td><td>Barlow</td></tr>
 <tr><td>Tube, thick wall</td><td><code>σθ = p(ro²+ri²)/(ro²−ri²)</code></td><td>Lamé, peak at the bore; von Mises with σr = −p and σz</td></tr>
@@ -275,20 +279,20 @@ footer{color:var(--mut);font-size:12.5px;padding:20px 0 calc(30px + env(safe-are
 <section class="view" id="view-refs" hidden>
   <div class="hero"><h1>Sources</h1><p>Where each method and table comes from. Standard series and catalogue rules are checked against two independent sources; formulas are standard engineering texts.</p></div>
   <div class="learn" style="grid-template-columns:1fr"><div><article><ul class="refs">
-<li><b>ISO 3320:2013</b> bores and rod diameters — preview of the standard (iTeh), cross-checked with ISO 3320:1987 / IS 8208:2004 and the DIN ISO 3320:2013 change list. Bore 60 mm withheld: DIN says it was deleted, the ISO preview lists it.</li>
-<li><b>NFPA inch bores and rods</b> — bores 1.50–8.00 in: Parker Series H (HY08-AC1314), Bosch Rexroth NFPA (RA 17038), Hydraulic Cylinders Inc. NFPA catalogue; rods 0.625–2.000 in: the same three; 2.50–4.00 in: Parker Series H + an independent NFPA size listing. Bore 7.00 in and rods 4.50–5.50 in withheld (one source each).</li>
+<li><b>ISO 3320:2013</b> bores and rod diameters — the standard's own bore list (Table 4) cross-checked with ISO 3320:1987 / IS 8208:2004 and the DIN ISO 3320:2013 change list. There is no 60 mm bore; (60) is a non-preferred rod.</li>
+<li><b>NFPA inch bores and rods</b> — bores 1.50–8.00 in: Parker Series H (HY08-AC1314), Bosch Rexroth NFPA (RA 17038), Hydraulic Cylinders Inc. NFPA catalogue; rods 0.625–2.000 in: the same three; 2.50–4.00 in: Parker Series H + an independent NFPA size listing. 7.00 in: Parker 0106 / HY08-0910 + Aventics; 10, 12, 14 in: Parker 0106 + Aventics + Hydro-Line N5; rods 4.50 in: HCI + independent listing; 5.00 in: HCI + Vickers RE/RF; 5.50 in: HCI + Parker Series H.</li>
 <li><b>ISO 4393:2015</b> piston strokes — preview of the standard (iTeh); Atos KTC cylinder catalogue lists the same series.</li>
 <li><b>Stroke factors</b> — Parker 2H Series (HY07-1110), Parker 0106 / HMI catalogues, Norgren NFPA cylinders catalogue, Atos KTC catalogue: identical factors.</li>
 <li><b>Stop tube rule</b> — Peninsular Cylinder, Milwaukee Cylinder design engineer's guide, Advance Automation, ARO cylinder catalogue.</li>
 <li><b>Rod-end pressure with meter-out, cushion method, 4 in/s (100 mm/s) cushion guidance</b> — Parker 0900 cylinder engineering data; Hydraulics &amp; Pneumatics, "Avoiding problems with hydraulic cylinders".</li>
-<li><b>Buckling</b> — Euler and J. B. Johnson column equations (Shigley's Mechanical Engineering Design; Machinery's Handbook). NFPA T3.6.37 named as the full method (not implemented).</li>
+<li><b>Buckling</b> — Euler and J. B. Johnson column equations (Shigley's Mechanical Engineering Design; Machinery's Handbook) for the governing rod-only check. Tube + rod column: Timoshenko–Gere two-segment model and the gland-joint stiffness model of S. Baragetti &amp; F. Villa, "Effects of geometrical clearances, supports friction, and wear rings on hydraulic actuators bending behavior", Mathematical Problems in Engineering 2016, 3781397 — the app reproduces their published limit loads (3,855 N rigid; 3,111 N and 3,629 N with joint stiffness). E. Narvydas, Mechanika 22(6) 2016 compares DNV, Euler, Tetmajer and FEA. DNV-GL CG-0194 acceptance (buckling load / actual load ≥ 4) is quoted; its formula is not implemented.</li>
 <li><b>Tube</b> — Barlow and Lamé thick-cylinder equations (Shigley; Roark's Formulas for Stress and Strain).</li>
 <li><b>Flat plates</b> — Roark Table 11.2; RoyMech "Loaded flat plates"; Engineers Edge circular plate calculators.</li>
 <li><b>Thread stress area</b> — ISO 898-1 (metric) and ASME B1.1 / FED-STD-H28 (inch).</li>
 <li><b>Line velocity guidance</b> — STLE, "Cardinal sins of hydraulic system design"; HydraulicSupermarket, "Velocity and pressure drop in pipes". Shown side by side.</li>
 <li><b>Natural frequency</b> — H. J. Ulrich, "Some factors influencing the natural frequency of linear hydraulic actuators", Int. J. Mach. Tool Des. Res. 11 (1971); HAWE fluid lexicon; Delta Motion (4 × rule of thumb, via Power &amp; Motion).</li>
 <li><b>Bulk modulus range</b> — 1.4–1.7 GPa for mineral oil, lower with entrained air (Industrial Monitor Direct technical note).</li></ul>
-<h3>Not covered yet (named gaps)</h3><ul><li>NFPA T3.6.37 buckling with gland bearing clearance</li><li>Head retention design (thread, wire ring, bolted head)</li><li>Thread stripping and rod-eye section checks</li><li>Seal friction model; fatigue life of the tube and mounts</li><li>Bore 60 mm (ISO 3320 conflict)</li><li>NFPA bore 7.00 in, rods 4.50–5.50 in, bores above 8 in (one source so far)</li></ul></article></div></div>
+<h3>Not covered yet (named gaps)</h3><ul><li>DNV-GL CG-0194 buckling formula (its Z term not readable from a free source yet); ISO/TS 13725:2021 and NFPA T3.6.37 texts (paywalled)</li><li>Gland joint stiffness from wear-ring geometry (enter Kf directly)</li><li>Head retention design (thread, wire ring, bolted head)</li><li>Thread stripping and rod-eye section checks</li><li>Seal friction model; fatigue life of the tube and mounts</li><li>Peak (not average) cushion pressure</li><li>ISO 4395 rod-end thread for each rod size; ISO 3320 Table 4 area ratios</li></ul></article></div></div>
 </section>
 </main>
 <footer class="wrap">Cylinder Designer · reference calculations for engineers — verify against your standard, suppliers' data and customer specification. Companion apps: <a href="https://harsh3261.github.io/materials-atlas/">Materials Atlas</a> · <a href="https://harsh3261.github.io/spc-tools/">SPC Tools</a></footer>
