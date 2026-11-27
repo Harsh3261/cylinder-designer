@@ -66,6 +66,17 @@ table.rep th{color:var(--mut);font-weight:600;font-size:12px}
 table.ft{width:100%;border-collapse:collapse;font-size:13px;margin:4px 0}table.ft th,table.ft td{text-align:left;padding:5px 6px;border-bottom:1px dashed #222a37}table.ft th{color:var(--mut);font-weight:600}table.ft td:first-child{color:var(--mut)}table.ft td{font-family:var(--m)}table.ft td:first-child{font-family:var(--f)}
 .fig h4{margin-top:14px}.fig>div{background:var(--bg);border:1px solid var(--line);border-radius:8px;min-height:150px}
 .sum{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 12px}.actions{margin-top:12px}
+.step>header[role=button]{cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:8px}
+.step>header[role=button]:focus-visible{outline:2px solid var(--acc2);outline-offset:4px}
+.step .tw{width:10px;height:10px;border-right:2px solid var(--mut);border-bottom:2px solid var(--mut);transform:rotate(45deg);margin:0 6px 4px 4px;flex:none;transition:transform .15s}
+.step.shut .tw{transform:rotate(-45deg);margin-bottom:0}
+.step.shut>header{margin-bottom:0}.step.shut .body{display:none}
+.step .key{display:none;margin-top:3px!important;color:var(--ink)!important;font-size:13px}.step.shut .key{display:block}.step .key b{font:600 13px var(--m);color:var(--acc)}
+figure.pic{display:grid;grid-template-columns:minmax(0,340px) 1fr;gap:16px;align-items:center;margin:0 0 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+figure.pic svg{width:100%;height:auto;display:block}figure.pic figcaption{color:#cfd6e0;font-size:14px;line-height:1.5}
+.learn figure.pic{margin:10px 0}
+@media (max-width:700px){figure.pic{grid-template-columns:1fr;gap:8px}}
+@media print{.step.shut .body{display:block}.step .key,.step .tw,figure.pic{display:none!important}}
 /* learn */
 .learn{display:grid;grid-template-columns:220px 1fr;gap:18px;align-items:start;padding-bottom:40px}
 .learn nav{position:sticky;top:76px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:8px;display:flex;flex-direction:column}
@@ -100,8 +111,8 @@ footer{color:var(--mut);font-size:12.5px;padding:20px 0 calc(30px + env(safe-are
 <main class="wrap">
 <section class="view" id="view-design">
   <div class="hero"><h1>Design a hydraulic cylinder</h1>
-    <p>Work down the steps. Every result updates as you type, every check shows OK / Check / Fails, and the report at the end collects them for printing. The numbers loaded are a worked example — replace them with yours.</p></div>
-  <div class="status"><span id="status"></span><span class="tools"><button type="button" class="ghost" id="btnReset">Load the example</button><button type="button" class="ghost" id="btnClear">Clear my inputs</button></span></div>
+    <p>Work down the steps. Tap a step to open it — each one has a picture of what it checks. Results update as you type, every check shows OK / Check / Fails, and the report at the end collects them for printing. The numbers loaded are a worked example — replace them with yours. New here? Read the Guide tab first.</p></div>
+  <div class="status"><span id="status"></span><span class="tools"><button type="button" class="ghost" id="btnReset">Load the example</button><button type="button" class="ghost" id="btnClear">Clear my inputs</button><button type="button" class="ghost" id="btnOpenAll">Open all steps</button><button type="button" class="ghost" id="btnCloseAll">Fold all</button></span></div>
   <div class="diagram"><svg id="cyl" role="img" aria-label="Side view of the cylinder, to scale"></svg></div>
   <div class="layout"><nav id="toc" aria-label="Design steps"></nav><div><div id="steps"></div><section id="report"></section></div></div>
 </section>
@@ -130,7 +141,7 @@ footer{color:var(--mut);font-size:12.5px;padding:20px 0 calc(30px + env(safe-are
 <section class="view" id="view-guide" hidden>
   <div class="hero"><h1>Guide — how to use Cylinder Designer</h1><p>Plain words, start to finish. Read "What this is", then follow the worked example through the 11 steps. Every number quoted here is what the site shows when you tap <b>Load the example</b>.</p></div>
   <div class="learn">
-    <nav aria-label="Guide topics"><a href="#g-what">What this is</a><a href="#g-chips">OK / Check / Fails</a><a href="#g-before">Before you start</a><a href="#g-s1">1 Application</a><a href="#g-s2">2 Bore and rod</a><a href="#g-s3">3 Speed, flow, power</a><a href="#g-s4">4 Buckling</a><a href="#g-s5">5 Tube</a><a href="#g-s6">6 Cap and welds</a><a href="#g-s7">7 Rod, threads, pin</a><a href="#g-s8">8 Tie rods</a><a href="#g-s9">9 Cushions</a><a href="#g-s10">10 Ports</a><a href="#g-s11">11 Dynamics</a><a href="#g-report">The report</a><a href="#g-fea">FEA tab</a><a href="#g-limits">What it does not do</a><a href="#g-words">Words</a></nav>
+    <nav aria-label="Guide topics"><a href="#g-what">What this is</a><a href="#g-chips">OK / Check / Fails</a><a href="#g-before">Before you start</a><a href="#g-s1">1 Application</a><a href="#g-s2">2 Bore and rod</a><a href="#g-s3">3 Speed, flow, power</a><a href="#g-s4">4 Buckling</a><a href="#g-s5">5 Tube</a><a href="#g-s6">6 Cap and welds</a><a href="#g-s7">7 Rod, threads, pin</a><a href="#g-s8">8 Tie rods</a><a href="#g-s9">9 Cushions</a><a href="#g-s10">10 Ports</a><a href="#g-s11">11 Dynamics</a><a href="#g-report">The report</a><a href="#g-fea">FEA tab</a><a href="#g-verify">Check it against a drawing</a><a href="#g-limits">What it does not do</a><a href="#g-words">Words</a></nav>
     <div>
 <article id="g-what"><h2>What this is</h2>
 <p>Cylinder Designer is a calculator that designs and checks a hydraulic cylinder from end to end. You describe the job (how hard it must push and pull, how far, how fast, at what pressure) and the cylinder (bore, rod, tube, threads, pins). It then checks every part that can fail — in <b>both directions</b>, at the <b>worst pressure</b> the system can ever make — and gives each check a coloured result.</p>
@@ -226,6 +237,21 @@ footer{color:var(--mut);font-size:12.5px;padding:20px 0 calc(30px + env(safe-are
 <p><b>Example:</b> lying horizontal, its own weight (tube + oil 0.532 kN/m, rod 0.296 kN/m) plus the 157.08 kN stall push bends it only 0.169 mm; the push magnifies the bending 1.152 times; the highest stress is 47 MPa in the rod — 41 MPa of that is the plain push. The whole cylinder would buckle at 1,188.25 kN, 7.56 times the stall push.</p>
 <p><b>Why trust it:</b> the "How it is verified" table on the tab shows it reproducing textbook answers exactly and a published research result to within 0.02 %. Add a side load or the gland stiffness Kf to see how much worse real-world misalignment and play make it.</p>
 <p class="note"><b>Say it out loud:</b> "This is a finite-element model of the cylinder itself — it uses our design numbers, matches the textbook cases, and shows the sag and stress along the whole length."</p></article>
+<article id="g-verify"><h2>Check it against a drawing you trust</h2>
+<p>Before trusting the site on a new design, run a cylinder you already know through it and compare. A released, signed-off drawing with ratings on it is the best test.</p>
+<ol><li>Switch units to match the drawing (in · psi or mm · bar).</li>
+<li>Enter bore, rod, stroke, retracted pin-to-pin length, tube OD and the pressures. Pick the mounting and end fixity that match the drawing (two clevises or eyes = pinned – pinned, K = 1.0).</li>
+<li>Enter the real material yields and modulus from the bill of materials — not the example values. Steel modulus is about 30 Msi (206 GPa); typing 30000 into an Msi field is the classic slip, and the report now flags it.</li>
+<li>Set the cushion lengths to 0 if you do not know them, so the example cushions do not change the tube check.</li>
+<li>Compare.</li></ol>
+<table><tr><th>Quantity on the drawing</th><th>Where to read it here</th><th>What agreement to expect</th></tr>
+<tr><td>Extend / retract area and force</td><td>Step 2</td><td>Within rounding (well under 1 %). Drawings often round areas, or work from the bore at its tolerance limit.</td></tr>
+<tr><td>Critical buckling load</td><td>Step 4 — tube + rod (rigid gland) and DNV lines</td><td>Within about 10 %. The answer moves with the rod stick-out, the extension the drawing rates, the modulus and the method; DNV reads up to 18 % above the exact elastic load. The rod-only line is deliberately lower (more conservative).</td></tr>
+<tr><td>Pressure derating table by extension</td><td>Step 4, repeated at each extension</td><td>The safety factor (critical load ÷ force) should come out about the same on every row — that shows the table follows one rule.</td></tr>
+<tr><td>Gland retention, piston / nut joint</td><td>Not yet — open gaps 2 and 3</td><td>The site cannot check these yet; keep using your existing method.</td></tr></table>
+<p><b>Privacy:</b> everything you type stays in this browser on this device (saved so the page remembers it). Nothing is sent anywhere. When you are finished with a confidential drawing, tap <b>Clear my inputs</b> on the Design tab — it overwrites the saved values.</p>
+<p><b>Built-in verification:</b> every calculation is also checked by an automatic test suite (tests/engine.test.js, tests/fea.test.js) against hand calculations and published results — for example, the buckling model reproduces Baragetti &amp; Villa's 3,855 N, and the beam model matches the textbook cantilever and secant formulas exactly.</p></article>
+
 <article id="g-limits"><h2>What it does not do (honest limits)</h2>
 <ul><li><b>The one caution:</b> for buckling, the <b>rod-only Euler / Johnson check governs</b>. DNV's whole-cylinder formula reads about 0–18 % high compared with the exact answer — DNV's own factor of 4 covers that, so read DNV only against its 4. The rigid-joint model is high too, because real glands have play.</li>
 <li>Not checked yet: how the head is held in (thread, wire ring, bolts); thread stripping; the rod eye; seal friction; fatigue life; peak (not average) cushion pressure; ISO/TS 13725 and NFPA T3.6.37 buckling methods; DNV mounting rules other than pin–pin.</li>
@@ -441,6 +467,7 @@ footer{color:var(--mut);font-size:12.5px;padding:20px 0 calc(30px + env(safe-are
 </main>
 <footer class="wrap">Cylinder Designer · reference calculations for engineers — verify against your standard, suppliers' data and customer specification. Companion apps: <a href="https://harsh3261.github.io/materials-atlas/">Materials Atlas</a> · <a href="https://harsh3261.github.io/spc-tools/">SPC Tools</a></footer>
 <script src="engine.js"></script>
+<script src="figs.js"></script>
 <script src="app.js"></script>
 <script>
 if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){addEventListener("load",function(){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}});}

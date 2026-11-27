@@ -1,7 +1,7 @@
 // Cylinder Designer service worker — offline after the first visit. Page network-first; files cache-first.
 // Cleanup touches only cylinder-designer-* caches (this app shares harsh3261.github.io with the other apps).
-const CACHE = 'cylinder-designer-v7-dnv44';
-const SHELL = ['./index.html', './engine.js', './app.js', './manifest.json', './icon.svg'];
+const CACHE = 'cylinder-designer-v8-pictures';
+const SHELL = ['./index.html', './engine.js', './figs.js', './app.js', './manifest.json', './icon.svg'];
 const PAGE = new URL('./index.html', self.location).href;
 const SCOPE = self.registration.scope;
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });

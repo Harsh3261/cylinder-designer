@@ -226,6 +226,12 @@
     var C = [];
     function add(step, label, status, detail){ C.push({ step:step, label:label, status:status, detail:detail }); }
     var sfS = function(v, req){ return !isFinite(v) ? "na" : v >= req ? "pass" : v >= req * 0.85 ? "warn" : "fail"; };
+    /* Input sanity: a unit slip (e.g. 30000 typed into an Msi field) otherwise gives confident nonsense. Ranges are
+       deliberately wide — they only catch values no structural metal can have; they are not material data. */
+    [["Erod","Rod elastic modulus",4],["Etube","Tube elastic modulus",5]].forEach(function(e){ var v = S[e[0]];
+      if (v != null && (v < 40e9 || v > 450e9)) add(e[2], e[1] + " looks wrong", "fail", fmt(v,"mod") + " is outside any structural metal (about " + fmt(40e9,"mod") + " – " + fmt(450e9,"mod") + "). Check the unit — every result using it is unreliable."); });
+    [["Syrod","Rod yield strength",4],["Sytube","Tube yield strength",5],["Sycap","Cap yield strength",6],["Sypin","Pin yield strength",7],["Sytie","Tie-rod yield strength",8]].forEach(function(e){ var v = S[e[0]];
+      if (v != null && (v < 50e6 || v > 2500e6)) add(e[2], e[1] + " looks wrong", "fail", fmt(v,"stress") + " is outside the range of structural metals (about " + fmt(50e6,"stress") + " – " + fmt(2500e6,"stress") + "). Check the unit."); });
     add(2, "Extension (push) force at working pressure", R.f.push >= R.needPush ? "pass" : "fail", fmt(R.f.push,"force") + " available vs " + fmt(R.needPush,"force") + " needed · stall at relief " + fmt(R.fmax.push,"force"));
     add(2, "Retraction (pull) force at working pressure", R.f.pull >= R.needPull ? "pass" : "fail", fmt(R.f.pull,"force") + " available vs " + fmt(R.needPull,"force") + " needed · stall at relief " + fmt(R.fmax.pull,"force"));
     if (S.Q > 0) add(3, "Pump flow meets both speeds", S.Q >= R.qNeed * 0.999 ? "pass" : "warn", fmt(S.Q,"flow") + " available vs " + fmt(R.qNeed,"flow") + " needed");
@@ -366,14 +372,25 @@
 
   function renderSteps(){
     $("steps").innerHTML = STEPS.map(function(s){
-      return '<section class="step" id="step' + s.n + '"><header><span class="sn">' + s.n + '</span><div><h2>' + esc(s.t) + '</h2><p>' + esc(s.sub) + '</p></div><span class="sst" id="sst' + s.n + '"></span></header>' +
-        '<div class="grid"><div class="ins">' + s.f.map(function(k){
-          return field(k, k === "D" ? isoPick("D") : k === "d" ? isoPick("d") : k === "stroke" ? isoPick("stroke") : ""); }).join("") + '</div><div class="outs" id="out' + s.n + '"></div></div></section>';
+      var fg = window.FIGS && FIGS[s.n];
+      return '<section class="step' + (OPEN[s.n] ? "" : " shut") + '" id="step' + s.n + '"><header role="button" tabindex="0" aria-expanded="' + (OPEN[s.n] ? "true" : "false") + '" data-step="' + s.n + '"><span class="sn">' + s.n + '</span><div><h2>' + esc(s.t) + '</h2><p>' + esc(s.sub) + '</p><p class="key" id="key' + s.n + '"></p></div><span class="sst" id="sst' + s.n + '"></span><span class="tw" aria-hidden="true"></span></header>' +
+        '<div class="body">' + (fg ? '<figure class="pic">' + fg.svg + '<figcaption>' + esc(fg.cap) + '</figcaption></figure>' : "") + '<div class="grid"><div class="ins">' + s.f.map(function(k){
+          return field(k, k === "D" ? isoPick("D") : k === "d" ? isoPick("d") : k === "stroke" ? isoPick("stroke") : ""); }).join("") + '</div><div class="outs" id="out' + s.n + '"></div></div></div></section>';
     }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("#steps .step>header"), function(h){
+      var go = function(){ setOpen(+h.getAttribute("data-step"), !OPEN[+h.getAttribute("data-step")]); };
+      h.onclick = function(e){ if (e.target.closest("select,input,a")) return; go(); };
+      h.onkeydown = function(e){ if (e.key === "Enter" || e.key === " "){ e.preventDefault(); go(); } }; });
     $("toc").innerHTML = STEPS.map(function(s){ return '<a href="#step' + s.n + '"><span>' + s.n + "</span>" + esc(s.t) + '<i id="toc' + s.n + '"></i></a>'; }).join("") + '<a href="#report"><span>✓</span>Report</a>';
     var fi = $("fea-ins"); if (fi) fi.innerHTML = ["feaLoad","feaSide","feaWt","rhoS","rhoO","feaN"].map(function(k){ return field(k); }).join("");
     visibility();
   }
+  /* Steps fold so the page is not one long wall of inputs: step 1 starts open; tapping a header or a
+     contents link opens it. A folded step still shows its status chip and its headline result. */
+  var OPEN = { 1:true };
+  function setOpen(n, on){ OPEN[n] = on; var el = $("step" + n); if (!el) return; el.classList.toggle("shut", !on);
+    el.querySelector("header").setAttribute("aria-expanded", on ? "true" : "false"); }
+  function setAll(on){ STEPS.forEach(function(s){ setOpen(s.n, on); }); }
   function visibility(){
     var inch = S.thrSys === "inch";
     toggle("thrP", !inch); toggle("thrTPI", inch); toggle("pistP", !inch); toggle("pistTPI", inch);
@@ -384,7 +401,9 @@
   function update(){
     var R = calc();
     if (!R.ok){ STEPS.forEach(function(s){ $("out" + s.n).innerHTML = '<p class="bad">Enter a bore larger than the rod.</p>'; }); $("report").innerHTML = ""; drawCyl(); return; }
-    STEPS.forEach(function(s){ $("out" + s.n).innerHTML = s.out(R); });
+    STEPS.forEach(function(s){ var h = s.out(R); $("out" + s.n).innerHTML = h;
+      var KEY = { 4:/^Safety factor$/, 5:/^Safety factor on yield, at relief$/ }, re = /<div class="r[^"]*"><span>(.*?)<\/span><b>(.*?)<\/b>/g, m, first = null;
+      while ((m = re.exec(h))){ if (!first) first = m; if (KEY[s.n] && KEY[s.n].test(m[1])){ first = m; break; } } m = first; $("key" + s.n).innerHTML = m ? m[1] + ": <b>" + m[2] + "</b>" : ""; });
     var C = checks(R), worst = {}; C.forEach(function(c){ var w = worst[c.step]; var rank = { fail:3, warn:2, pass:1, na:0 }; if (!w || rank[c.status] > rank[w]) worst[c.step] = c.status; });
     STEPS.forEach(function(s){ var st = worst[s.n]; $("sst" + s.n).innerHTML = st ? chip(st) : ""; $("toc" + s.n).className = st || ""; });
     var cnt = { pass:0, warn:0, fail:0 }; C.forEach(function(c){ if (c.status in cnt) cnt[c.status]++; });
@@ -479,6 +498,12 @@
   document.querySelectorAll("[data-units]").forEach(function(b){ b.onclick = function(){ setUnits(b.getAttribute("data-units")); }; });
   $("btnReset").onclick = function(){ loadExample(); save(); renderSteps(); update(); };
   $("btnClear").onclick = function(){ F.forEach(function(f){ var d = FD[f[0]]; if (d.q !== "sel" && ["eff","etaP","nu","Erod","Etube","beta","SFb","SFt","K"].indexOf(d.k) < 0) S[d.k] = null; }); save(); renderSteps(); update(); };
+  $("toc").addEventListener("click", function(e){ var a = e.target.closest('a[href^="#step"]'); if (a) setOpen(+a.getAttribute("href").slice(5), true); });
+  if ($("btnOpenAll")) $("btnOpenAll").onclick = function(){ setAll(true); };
+  if ($("btnCloseAll")) $("btnCloseAll").onclick = function(){ setAll(false); };
+  /* Guide: the same step pictures beside each step's write-up */
+  if (window.FIGS) for (var gi = 1; gi <= 11; gi++){ var ga = $("g-s" + gi), gf = FIGS[gi]; if (ga && gf){ var gh = ga.querySelector("h2");
+    gh.insertAdjacentHTML("afterend", '<figure class="pic">' + gf.svg + '<figcaption>' + esc(gf.cap) + '</figcaption></figure>'); } }
   /* views */
   function show(v){ document.querySelectorAll(".view").forEach(function(s){ s.hidden = s.id !== "view-" + v; });
     document.querySelectorAll("[data-view]").forEach(function(b){ b.setAttribute("aria-current", b.getAttribute("data-view") === v ? "page" : "false"); });

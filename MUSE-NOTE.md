@@ -1,3 +1,30 @@
+# Note for Muse — v8: step pictures, folding steps, input sanity guard, "check it against a drawing" guide (2026-11-27)
+
+Harsh found the Design page overwhelming (13.7k px of inputs on a phone) and asked for pictures.
+- figs.js (new, UI only): one explanatory sketch per design step (1–11) with a plain caption of what the step checks.
+  Shown at the top of each step and beside each step's write-up in the Guide. Not to scale; no data.
+- Steps now fold. Step 1 opens; a folded step shows its status chip and a headline result (step 4: buckling safety
+  factor; step 5: tube factor at relief). Contents links open the step; "Open all steps" / "Fold all" buttons.
+  Print opens everything and hides the pictures. Phone page height 13,744 → 5,626 px.
+- Input sanity guard (checks): modulus outside 40–450 GPa or a yield outside 50–2,500 MPa reports "looks wrong" —
+  Fails. Ranges are plausibility bounds for structural metals, not material data.
+- Guide: new "Check it against a drawing you trust" — how to enter a known cylinder, what agreement to expect, privacy
+  (inputs live only in the browser; Clear my inputs overwrites them).
+
+## Why the guard — stress test against a released drawing
+Harsh ran one of his employer's released cylinder drawings through the site. Per rule 4 none of its values are recorded
+here. Findings only: areas and forces agreed within 0.1 % (drawing rounds areas); whole-cylinder buckling (rigid
+gland and DNV) came within about 1–10 % of the drawing's critical load depending on which extension it refers to; the
+drawing's pressure-derating rows give an almost constant safety factor in this model; UI and engine agree to 0.02 %.
+Found: typing 30000 into the Msi modulus field produced an "OK" buckling factor about 4× too high — hence the guard.
+Not checkable yet: gland retention and piston/nut joint ratings (gaps 2 and 3 — now with a real use case behind them).
+
+## Flags for Satureday
+- Gaps 2 and 3 (head retention, thread stripping) are what a real drawing asked for next — suggest raising their priority.
+- sw.js cylinder-designer-v8-pictures; figs.js added to the shell. Tests: engine 58 OK, FEA 15 OK; no page errors.
+
+---
+
 # Note for Muse — v7: DNV §4.4 mountings implemented; gap 1a′ closed (2026-11-27)
 
 Satureday's full read of CG-0194 (Jul 2017): no fixation figures exist in §4 (Fig. 4 = clause 9.2 welding steering
