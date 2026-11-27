@@ -92,7 +92,7 @@ footer{color:var(--mut);font-size:12.5px;padding:20px 0 calc(30px + env(safe-are
 <div class="top"><div class="wrap">
   <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="10" width="17" height="12" rx="2" fill="#2a3444" stroke="#46536a"/><rect x="12" y="11.5" width="3" height="9" fill="#f0a33a"/><rect x="15" y="14" width="15" height="4" rx="1" fill="#c9d3df"/></svg>
     <div>Cylinder Designer<small>Hydraulic cylinder design, step by step</small></div></div>
-  <nav class="views" aria-label="Sections"><button type="button" data-view="design" aria-current="page">Design</button><button type="button" data-view="learn">Learn</button><button type="button" data-view="refs">Sources</button></nav>
+  <nav class="views" aria-label="Sections"><button type="button" data-view="design" aria-current="page">Design</button><button type="button" data-view="guide">Guide</button><button type="button" data-view="learn">Learn</button><button type="button" data-view="refs">Sources</button></nav>
   <div class="seg" role="group" aria-label="Units"><button type="button" data-units="m" aria-pressed="true">mm · bar</button><button type="button" data-units="i" aria-pressed="false">in · psi</button></div>
 </div></div>
 
@@ -105,6 +105,123 @@ footer{color:var(--mut);font-size:12.5px;padding:20px 0 calc(30px + env(safe-are
   <div class="layout"><nav id="toc" aria-label="Design steps"></nav><div><div id="steps"></div><section id="report"></section></div></div>
 </section>
 
+
+<section class="view" id="view-guide" hidden>
+  <div class="hero"><h1>Guide — how to use Cylinder Designer</h1><p>Plain words, start to finish. Read "What this is", then follow the worked example through the 11 steps. Every number quoted here is what the site shows when you tap <b>Load the example</b>.</p></div>
+  <div class="learn">
+    <nav aria-label="Guide topics"><a href="#g-what">What this is</a><a href="#g-chips">OK / Check / Fails</a><a href="#g-before">Before you start</a><a href="#g-s1">1 Application</a><a href="#g-s2">2 Bore and rod</a><a href="#g-s3">3 Speed, flow, power</a><a href="#g-s4">4 Buckling</a><a href="#g-s5">5 Tube</a><a href="#g-s6">6 Cap and welds</a><a href="#g-s7">7 Rod, threads, pin</a><a href="#g-s8">8 Tie rods</a><a href="#g-s9">9 Cushions</a><a href="#g-s10">10 Ports</a><a href="#g-s11">11 Dynamics</a><a href="#g-report">The report</a><a href="#g-limits">What it does not do</a><a href="#g-words">Words</a></nav>
+    <div>
+<article id="g-what"><h2>What this is</h2>
+<p>Cylinder Designer is a calculator that designs and checks a hydraulic cylinder from end to end. You describe the job (how hard it must push and pull, how far, how fast, at what pressure) and the cylinder (bore, rod, tube, threads, pins). It then checks every part that can fail — in <b>both directions</b>, at the <b>worst pressure</b> the system can ever make — and gives each check a coloured result.</p>
+<p>Use it two ways: to <b>size a new cylinder</b> (it tells you the smallest standard bore and rod that work), or to <b>check an existing one</b> (enter its real dimensions and see what passes). It works in mm·bar or in·psi — the switch at the top converts everything.</p>
+<p>Your inputs are saved only in this browser on this device. Nothing is sent anywhere.</p></article>
+
+<article id="g-chips"><h2>What OK / Check / Fails mean</h2>
+<table><tr><th>Chip</th><th>Means</th><th>What you do</th></tr>
+<tr><td><i class="chip pass">OK</i></td><td>This part meets the requirement, with the safety factor you set.</td><td>Nothing.</td></tr>
+<tr><td><i class="chip warn">Check</i></td><td>Needs your judgement: it is just under the requirement (within 15 %), it is a recommendation (like a stop tube), or the app needs one more number from you to judge it.</td><td>Read the detail line — it says which.</td></tr>
+<tr><td><i class="chip fail">Fails</i></td><td>Clearly below the requirement.</td><td>Change the design: bigger rod, thicker wall, stronger material, lower pressure…</td></tr></table>
+<p>The coloured dots in the step list show the worst result inside each step. The line at the top counts them all.</p></article>
+
+<article id="g-before"><h2>Before you start on a real cylinder — what to have in hand</h2>
+<ul><li><b>The job:</b> push force and pull force the load needs, the moving mass, whether it moves horizontally or up/down, stroke, wanted speeds.</li>
+<li><b>The hydraulics:</b> working pressure, the <b>relief valve setting</b> (the most important number — all strength checks use it), pump flow, and whether there is a flow control or counterbalance valve on the rod side.</li>
+<li><b>Cylinder size:</b> bore, rod diameter, stroke (nameplate or drawing).</li>
+<li><b>Geometry:</b> mounting style (clevis, trunnion, flange…), pin-to-pin length with the rod fully in, how far the rod sticks out of the head when retracted.</li>
+<li><b>Parts:</b> tube outside diameter, cap thickness, cap weld size, rod-end thread, piston thread, rod-end pin diameter and its length in the eye, cushion lengths with spear and collar diameters, port drilling diameters.</li>
+<li><b>Materials:</b> minimum yield strength of rod, tube, cap, pin and tie rods — from the material certs or Materials Atlas. The app never assumes a material; the numbers loaded are examples only.</li></ul></article>
+
+<article id="g-s1"><h2>Step 1 — Application: what the cylinder must do</h2>
+<p><b>Asks:</b> push force, pull force, moving mass, direction, stroke, extend and retract speed, working pressure, relief pressure, efficiency, and whether the rod side can be metered out (blocked or throttled).</p>
+<p><b>Plain meaning:</b> push and pull are the loads the job needs, not counting the load's weight — pick "vertical" and the app adds or subtracts the weight for you. Working pressure is what does the job; relief pressure is the most the system can ever make.</p>
+<p><b>Example:</b> 80 kN push, 30 kN pull, 500 kg, horizontal, 800 mm stroke, 100 mm/s out, 150 mm/s in, 160 bar working, 200 bar relief.</p>
+<p class="note"><b>Say it out loud:</b> "We start from the job — the forces, the stroke, the speed and the relief setting — because everything else is checked against those."</p></article>
+
+<article id="g-s2"><h2>Step 2 — Bore and rod</h2>
+<p><b>Asks:</b> bore and rod diameter. The size lists offer standard ISO 3320 (metric) and NFPA (inch) sizes.</p>
+<p><b>Tells you:</b> the smallest bore that does the job, the smallest standard bore, the two piston areas, the area ratio φ, and a table of forces both ways.</p>
+<p><b>Example:</b> 100 mm bore with a 70 mm rod. The rod covers almost half the piston, so the rod side has 40.06 cm² against 78.54 cm² — φ = 1.961. At 160 bar that pushes 125.66 kN (80 needed) and pulls 64.09 kN (30 needed). The smallest workable bore shows 85.4 mm because the big rod eats into the pull area — a 90 mm bore would just do. At the 200 bar relief the cylinder can stall at <b>157.08 kN push and 80.11 kN pull</b>: those are the forces every strength check uses.</p>
+<p><b>Chips:</b> Extension and Retraction force — OK when the force at working pressure covers what the job needs.</p>
+<p class="note"><b>Say it out loud:</b> "Force is pressure times area — the full piston pushes, only the ring around the rod pulls, and we check the parts at the relief pressure, not the working one."</p></article>
+
+<article id="g-s3"><h2>Step 3 — Speed, flow and power</h2>
+<p><b>Asks:</b> pump flow (optional) and pump efficiency.</p>
+<p><b>Tells you:</b> the flow each speed needs, the pump size, stroke times, oil per stroke, power, and the rod-side pressure if the oil there is trapped.</p>
+<p><b>Example:</b> 100 mm/s out needs 47.1 L/min; on that flow the rod comes back at 196 mm/s (faster, because the rod side is smaller). Coming back, <b>92.4 L/min</b> pours out of the cap side — almost double the pump flow — so the cap port and return line must handle it. Power at 160 bar is 12.57 kW. If the rod side is metered out with no load, it can reach 200 × 1.961 = <b>392.2 bar</b> — that is "intensification".</p>
+<p><b>Chips:</b> "Rod-side pressure when metering out" shows <i class="chip warn">Check</i> whenever it is above relief — the rod seals, head and tube must be rated for it. The tube check in step 5 already includes it.</p>
+<p class="note"><b>Say it out loud:</b> "Speed is flow divided by area, and the cap side dumps nearly twice the pump flow on the way back — and a trapped rod side can see almost double the relief pressure."</p></article>
+
+<article id="g-s4"><h2>Step 4 — Rod buckling</h2>
+<p><b>Asks:</b> mounting style, pin-to-pin length retracted, end fixity, rod stiffness and yield, required safety factor; optional rod stick-out and gland stiffness for the extra models.</p>
+<p><b>Plain meaning:</b> when the rod pushes, it is a long column and can bow sideways and fold — long before the steel is overstressed. The longer the cylinder and the thinner the rod, the worse.</p>
+<p><b>Example:</b> extended, the cylinder is 1,900 mm pin to pin. A 70 mm rod over that length can carry 663.78 kN before buckling (Euler — it is slender). The stall push is 157.08 kN, so the safety factor is <b>4.23</b> against the 3 you asked for — OK. 70 mm is also the smallest standard rod that passes.</p>
+<p><b>Stop tube:</b> a spacer that keeps the piston and rod bearing apart on long strokes. A rear clevis has a stroke factor of 2, so the "basic length" is 2 × 800 = 1,600 mm (63 in). Catalogues add 1 in of stop tube for every 10 in over 40 in → <b>76.2 mm (3 in)</b>, shown as <i class="chip warn">Check</i> because it is a recommendation.</p>
+<p><b>Extra models (for information):</b> the whole cylinder as one column — rigid joint 1,188.25 kN; DNV's formula 1,403.47 kN (factor 8.93, DNV wants 4). These are higher than the rod-only number on purpose — see "What it does not do".</p>
+<p class="note"><b>Say it out loud:</b> "The rod is a column; at full stall force it still has more than four times the load it would buckle at, and we judge it on the rod alone, which is the safe way."</p></article>
+
+<article id="g-s5"><h2>Step 5 — Tube (barrel)</h2>
+<p><b>Asks:</b> tube outside diameter, tube yield and stiffness, required safety factor, optional test pressure.</p>
+<p><b>Tells you:</b> wall thickness, stresses, the safety factor at relief, and — most important — the safety factor at the <b>highest pressure any chamber can see</b>.</p>
+<p><b>Example:</b> 133 mm OD on a 100 mm bore is a 16.5 mm wall. At 200 bar the factor is a comfortable 4.45. But the app also looks at intensification (392.2 bar) and the cushions; the rod-end cushion averages <b>415.5 bar</b>, so the tube is judged there: factor <b>2.14</b> against 2 — OK. Under pressure the bore grows 34.1 µm, which opens the gap behind the piston seal.</p>
+<p class="note"><b>Say it out loud:</b> "We don't check the tube at relief only — we check it at the worst pressure it can ever see, which here is the rod cushion."</p></article>
+
+<article id="g-s6"><h2>Step 6 — Cap and welds</h2>
+<p><b>Asks:</b> cap thickness, how it is held (welded all round or simply supported), cap yield, weld throat size and allowable weld stress.</p>
+<p><b>Example:</b> a 30 mm cap bends to 42 MPa — factor 8.52; 14.5 mm would be the minimum. The weld carries the whole end load, 157.08 kN, at 47 MPa — factor 2.55 on its allowable.</p>
+<p class="note"><b>Say it out loud:</b> "The pressure tries to blow the cap off — the cap is checked in bending and the weld that holds it is checked in shear."</p></article>
+
+<article id="g-s7"><h2>Step 7 — Rod, threads and pin</h2>
+<p><b>Asks:</b> thread system, rod-end thread, optional neck diameter behind the thread, piston thread, pin diameter and length, pin yield.</p>
+<p><b>Plain meaning:</b> extending squeezes the rod; retracting <b>stretches</b> it. The thinnest parts in tension are the threads and any undercut.</p>
+<p><b>Example:</b> pulling 80.11 kN through an M42 × 2 rod thread is 63 MPa — factor 8.21. The piston thread (M36 × 2) holds the piston when the rod side is at relief: 80.11 kN, 88 MPa, factor 5.94. The rod body sees 41 MPa squeezing and 21 MPa stretching. The 40 mm pin in double shear sees 63 MPa — factor 5.91.</p>
+<p class="note"><b>Say it out loud:</b> "On the way back the rod is in tension, so we check the rod, its threads and the piston joint at the full stall pull."</p></article>
+
+<article id="g-s8"><h2>Step 8 — Tie rods / bolts</h2>
+<p>Only for tie-rod or bolted cylinders. It splits the end load among the rods and checks each one's thread. The example is welded, so the cap weld in step 6 does this job and this step just says so.</p>
+<p class="note"><b>Say it out loud:</b> "On a tie-rod cylinder the tie rods hold the ends on, so each one carries its share of the full end load."</p></article>
+
+<article id="g-s9"><h2>Step 9 — Cushioning</h2>
+<p><b>Asks:</b> cushion length at each end, spear and collar diameters, and the pressure your cushion chamber is rated for.</p>
+<p><b>Plain meaning:</b> near the end of the stroke a spear or collar plugs the exit, the trapped oil brakes the piston. The pump keeps pushing while it brakes, so that energy counts too.</p>
+<p><b>Example:</b> at the rod end the moving load brings only 3 J, but the pump pushing at relief adds almost 3,926 J — total 3,929 J, giving an average <b>415.5 bar</b> in the small ring around the collar. The cap end averages 122.0 bar. Both show <i class="chip warn">Check</i> until you type the chamber rating — the app will not guess it.</p>
+<p class="note"><b>Say it out loud:</b> "The cushion has to stop the pump as well as the load, so the trapped pressure ends up well above relief — and the tube is checked for it."</p></article>
+
+<article id="g-s10"><h2>Step 10 — Ports and lines</h2>
+<p><b>Asks:</b> the smallest drilled diameter in each port.</p>
+<p><b>Example:</b> 20 mm ports. The cap port carries the big 92.4 L/min on the return stroke: 4.90 m/s — inside both published guidelines (up to 5.5 and 6.1 m/s), so OK. The rod port: 2.50 m/s.</p>
+<p class="note"><b>Say it out loud:</b> "We size the cap port for the return flow, which is almost twice the pump flow."</p></article>
+
+<article id="g-s11"><h2>Step 11 — Dynamics</h2>
+<p><b>Asks:</b> oil stiffness (bulk modulus), dead oil volume in lines, and optionally how fast you want to accelerate.</p>
+<p><b>Plain meaning:</b> oil is a stiff spring, not a solid. Load on that spring has a natural "bounce" frequency; low means jerky, bouncy motion.</p>
+<p><b>Example:</b> lowest bounce is <b>40.7 Hz</b>, at 512 mm out. No check runs unless you enter an acceleration frequency (it should be at most a quarter of this).</p>
+<p class="note"><b>Say it out loud:</b> "The oil acts like a spring; this tells us how stiff and steady the cylinder will feel when it moves the load."</p></article>
+
+<article id="g-report"><h2>The report</h2>
+<p>At the bottom, every check from every step in one table with its result and the numbers behind it, plus a design summary. "Print / save PDF" makes a copy for a file or a customer. The example ends at <b>15 OK, 4 to check, 0 failing</b>: the 4 "Check" items are the intensification note, the stop-tube recommendation and the two cushion pressures waiting for a rating.</p></article>
+
+<article id="g-limits"><h2>What it does not do (honest limits)</h2>
+<ul><li><b>The one caution:</b> for buckling, the <b>rod-only Euler / Johnson check governs</b>. DNV's whole-cylinder formula reads about 0–18 % high compared with the exact answer — DNV's own factor of 4 covers that, so read DNV only against its 4. The rigid-joint model is high too, because real glands have play.</li>
+<li>Not checked yet: how the head is held in (thread, wire ring, bolts); thread stripping; the rod eye; seal friction; fatigue life; peak (not average) cushion pressure; ISO/TS 13725 and NFPA T3.6.37 buckling methods; DNV mounting rules other than pin–pin.</li>
+<li>It checks the cylinder, not the valves, hoses, pump or machine.</li>
+<li>Material strengths are yours to enter; the loaded ones are examples.</li>
+<li>It is a design check, not a certificate — final designs still go against the customer spec, the cylinder standard and the suppliers' data.</li></ul></article>
+
+<article id="g-words"><h2>Words the site uses</h2>
+<table><tr><td><b>Bore / rod</b></td><td>Inside diameter of the tube / diameter of the rod.</td></tr>
+<tr><td><b>Relief / stall</b></td><td>Relief = the highest pressure the valve allows. Stall = the force the cylinder makes at that pressure when it is blocked.</td></tr>
+<tr><td><b>φ (area ratio)</b></td><td>Full piston area ÷ ring area. Also how much faster it retracts than extends.</td></tr>
+<tr><td><b>Meter-out</b></td><td>Controlling speed by restricting the oil leaving the rod side.</td></tr>
+<tr><td><b>Intensification</b></td><td>The rod side being squeezed to pressure × φ when its oil is trapped — above relief.</td></tr>
+<tr><td><b>Cushion</b></td><td>A brake at the end of stroke made by trapping oil.</td></tr>
+<tr><td><b>Buckling</b></td><td>The rod bowing sideways and folding under push.</td></tr>
+<tr><td><b>Stop tube</b></td><td>A spacer that keeps the rod's support points apart on long strokes.</td></tr>
+<tr><td><b>Safety factor</b></td><td>How many times the actual load the part could take. 2 means twice.</td></tr>
+<tr><td><b>Yield strength</b></td><td>The stress where steel starts to bend for good.</td></tr>
+<tr><td><b>Natural frequency</b></td><td>How fast the load would bounce on the oil spring.</td></tr></table></article>
+    </div>
+  </div>
+</section>
 <section class="view" id="view-learn" hidden>
   <div class="hero"><h1>Everything about hydraulic cylinders</h1><p>How they work, how they are built, how to design, seal, mount, make, test and fix them — and which standards apply.</p></div>
   <div class="learn">

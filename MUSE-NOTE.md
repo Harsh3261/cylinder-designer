@@ -1,3 +1,22 @@
+# Note for Muse — v5: Guide tab for Harsh (2026-11-27)
+
+Harsh: "i have no idea what this is". Added a **Guide** tab on the site (between Design and Learn), plain language:
+what the site is; what OK / Check / Fails mean (Check = within 15 % under the requirement, a recommendation, or a
+missing input); what to have in hand before checking a real cylinder; all 11 steps — what each asks, what it tells you,
+the worked example's numbers and why, and a one-line "say it out loud"; the report; honest limits (rod-only
+Euler/Johnson governs; DNV reads 0–18 % high and is judged only against its own 4; open gaps listed); glossary.
+Every number quoted was read from the live app with "Load the example" (metric): 125.66 / 64.09 kN at 160 bar;
+157.08 / 80.11 kN stall; φ 1.961; smallest bore 85.4 mm (ISO 90); 47.1 L/min; 92.4 L/min cap outflow; 12.57 kW;
+392.2 bar intensification; Euler 663.78 kN, SF 4.23; stop tube 76.2 mm from basic length 1,600 mm; rigid 1,188.25 kN;
+DNV 1,403.47 kN (8.93); tube 16.5 mm wall, SF 4.45 at relief, 2.14 at 415.5 bar rod cushion; bore growth 34.1 µm;
+cap 42 MPa SF 8.52 (min 14.5 mm); weld 47 MPa factor 2.55; rod thread 63 MPa SF 8.21; piston thread 88 MPa SF 5.94;
+rod 41 / 21 MPa; pin 63 MPa SF 5.91; cushions 122.0 / 415.5 bar (3 J kinetic vs 3,929 J total); ports 4.90 / 2.50 m/s;
+natural frequency 40.7 Hz at 512 mm; report 15 OK / 4 Check / 0 failing.
+Deep link: …/cylinder-designer/#guide. Headless desktop + iPhone: 17 sections, 0 errors, no sideways scroll.
+sw.js cylinder-designer-v5-guide. No engine change (54 tests pass).
+
+---
+
 # Note for Muse — v4: DNV-GL CG-0194 buckling implemented, gap 1a closed (2026-11-27)
 
 Satureday's transcription (CG-0194 Edition July 2017, §4.2, page image):

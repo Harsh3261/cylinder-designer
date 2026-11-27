@@ -423,5 +423,5 @@
   window.CDshow = show;
 
   setUnits(sys);
-  if (/^#(learn|refs)$/.test(location.hash)) show(location.hash.slice(1));
+  if (/^#(guide|learn|refs)$/.test(location.hash)) show(location.hash.slice(1));
 })();
