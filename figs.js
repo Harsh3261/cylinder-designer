@@ -86,5 +86,13 @@ var FIGS = (function(){
       '<rect x="100" y="104" width="54" height="20" rx="3" fill="#1b212b" stroke="' + C.tubeL + '"/>' + t(127, 118, "mass", { a:"middle", c:C.ink }) +
       t(80, 30, "oil spring", { a:"middle", c:C.acc }) + t(174, 30, "oil spring", { a:"middle", c:C.acc }) +
       t(250, 62, "springy oil", {}) + t(250, 78, "+ heavy load", {}) + t(250, 94, "= it can bounce", { c:C.ink }), "Oil springs either side of the piston") };
+  P[12] = { cap:"Pressure on the rod side pushes the gland out of the tube and pushes the piston against its nut. Their threads (or the ring holding the gland) must not strip or shear at the highest rod-side pressure.",
+    svg:svg('<rect x="20" y="24" width="250" height="84" fill="' + C.tube + '" stroke="' + C.tubeL + '"/><rect x="26" y="36" width="190" height="60" fill="' + C.oil + '"/>' +
+      '<rect x="60" y="36" width="14" height="60" fill="' + C.pis + '"/><rect x="48" y="54" width="12" height="24" fill="' + C.rodL + '"/>' + t(54, 50, "nut", { a:"middle", c:C.ink, fs:10 }) +
+      '<rect x="74" y="58" width="246" height="16" fill="' + C.rod + '" stroke="' + C.rodL + '"/>' +
+      '<rect x="216" y="36" width="54" height="22" fill="#1b212b" stroke="' + C.tubeL + '"/><rect x="216" y="74" width="54" height="22" fill="#1b212b" stroke="' + C.tubeL + '"/>' +
+      '<path d="M216 36 l4 -4 l4 4 l4 -4 l4 4 l4 -4 l4 4 l4 -4 l4 4 l4 -4 l4 4 l4 -4 l4 4 l4 -4 l4 4" fill="none" stroke="' + C.pis + '" stroke-width="2"/>' +
+      t(243, 18, "gland thread", { a:"middle", c:C.pis }) + arrow(150, 44, 206, 44) + arrow(150, 88, 206, 88) + arrow(140, 66, 82, 66, "o") +
+      t(150, 124, "rod-side pressure pushes both ways", { a:"middle" }), "Gland and piston nut under rod-side pressure") };
   return P;
 })();

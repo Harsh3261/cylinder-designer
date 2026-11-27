@@ -35,6 +35,18 @@ function exactStepped(EI1, a, EI2, bL){
 const EIt = 206e9 * PI * (Math.pow(0.12, 4) - Math.pow(0.1, 4)) / 64;
 const Pex = exactStepped(EIt, 1.2, EI, 1.5), Pfe = CD.steppedBuckling([{ L:1.2, EI:EIt }, { L:1.5, EI }], "pin", "pin", 60);
 near("FE stepped pin-pin vs exact", Pfe, Pex, 2e-3); ok("stepped stiffer than rod alone", Pfe > PI * PI * EI / Math.pow(2.7, 2));
+/* Thread stripping areas — hand calculation, 1/2-13 UNC 2A/2B, Le = 0.5 in (ASME B1.1 limits: Kn max 0.4250, Es min 0.4435,
+   Ds min 0.4876, En max 0.4565). As = π·13·0.5·0.425·(1/26 + 0.57735·0.0185) = 0.426491 in²;
+   An = π·13·0.5·0.4876·(1/26 + 0.57735·0.0311) = 0.561743 in² (worked by hand, 6 figures). */
+{ const I2 = 0.0254 * 0.0254, ts = CD.threadShear(0.0254 / 13, 0.5 * 0.0254, 0.4250 * 0.0254, 0.4435 * 0.0254, 0.4876 * 0.0254, 0.4565 * 0.0254);
+  near("thread As 1/2-13", ts.As / I2, PI * 13 * 0.5 * 0.425 * (1 / 26 + 0.57735 * 0.0185), 1e-9);
+  near("thread As 1/2-13 hand value", ts.As / I2, 0.426491, 2e-6);
+  near("thread An 1/2-13 hand value", ts.An / I2, 0.561743, 2e-6);
+  const st = CD.threadStrip(0.0254 / 13, 0.0127, 0.4250 * 0.0254, 0.4435 * 0.0254, 0.4876 * 0.0254, 0.4565 * 0.0254, 600e6, 300e6);
+  near("strip load = 0.577·Sy·area (weaker side)", st.F, Math.min(0.577 * 600e6 * st.As, 0.577 * 300e6 * st.An)); ok("strip names weaker side", /internal/.test(st.weak));
+  /* retaining ring: Smalley example form, D 2 in, T 0.062, Ss 150 ksi: π·2·0.062·150000 = 58,434 lbf (K = 1); groove d 0.03 in, Sy 45 ksi: 8,482 lbf */
+  const rr = CD.retainingRing(2, 0.062, 0.03, 150000, 45000);
+  near("ring shear", rr.ringShear, PI * 2 * 0.062 * 150000); near("groove yield", rr.grooveYield, PI * 2 * 0.03 * 45000); ok("groove governs", rr.limit === "groove yield"); }
 /* stop tube: 40 in → 0; 40.1 in → 1 in; 50 in → 1 in; 50.1 in → 2 in */
 near("stop 40", CD.stopTube(40 * 0.0254) + 1, 1); near("stop 40.1", CD.stopTube(40.1 * 0.0254), 0.0254);
 near("stop 50", CD.stopTube(50 * 0.0254), 0.0254); near("stop 50.1", CD.stopTube(50.1 * 0.0254), 2 * 0.0254);

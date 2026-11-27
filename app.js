@@ -98,6 +98,27 @@
     ["V1d","vol","Dead volume, cap side (lines + port)",0.0005,""],
     ["V2d","vol","Dead volume, rod side (lines + port)",0.0005,""],
     ["fAcc","freq","Frequency of acceleration wanted (optional)",null,"Natural frequency should be at least 4× this (Delta Motion rule of thumb)."],
+    /* 12 head and piston retention (thread stripping: Machinery's Handbook / FED-STD-H28; rings: Smalley / Rotor Clip).
+       Limit dimensions come from your thread tables or gauge sheet (SPC Tools has ISO 965 / ASME B1.1 limits). */
+    ["pjLe","len","Piston thread engagement length (optional)",null,"Length of full thread engaged between the rod and the piston or nut. Blank = skip the stripping check."],
+    ["pjKn","len","Piston / nut internal thread — minor diameter, max (Kn max)",null,"From the thread class limits (ISO 965 D1 max / ASME B1.1 internal minor max)."],
+    ["pjEs","len","Rod external thread — pitch diameter, min (Es min)",null,"ISO 965 d2 min / ASME B1.1 external pitch min."],
+    ["pjDs","len","Rod external thread — major diameter, min (Ds min)",null,"ISO 965 d min / ASME B1.1 external major min."],
+    ["pjEn","len","Piston / nut internal thread — pitch diameter, max (En max)",null,"ISO 965 D2 max / ASME B1.1 internal pitch max."],
+    ["Synut","stress","Piston / nut minimum yield strength",null,"Enter your piston or nut grade."],
+    ["headType","sel","How the head (gland) is held in the tube",["threaded"],[["threaded","Threaded — gland screws into the tube"],["ring","Retaining ring — flat or spiral ring in a groove"],["bolted","Bolted / tie-rod head — see step 8"]]],
+    ["hdP","len","Head thread pitch (metric)",null,""],
+    ["hdTPI","n","Head threads per inch (inch)",null,""],
+    ["hdLe","len","Head thread engagement length",null,"Full thread engaged between gland and tube."],
+    ["hdKn","len","Tube internal thread — minor diameter, max (Kn max)",null,""],
+    ["hdEs","len","Gland external thread — pitch diameter, min (Es min)",null,""],
+    ["hdDs","len","Gland external thread — major diameter, min (Ds min)",null,""],
+    ["hdEn","len","Tube internal thread — pitch diameter, max (En max)",null,""],
+    ["Sygland","stress","Gland minimum yield strength",null,"The tube side uses the tube yield from step 5."],
+    ["wrD","len","Bore diameter at the ring groove",null,"Housing (tube) diameter where the ring sits."],
+    ["wrT","len","Ring thickness",null,""],
+    ["wrG","len","Groove depth",null,""],
+    ["wrSs","stress","Ring material shear strength",null,"From the ring maker's data. The groove side uses the tube yield from step 5."],
     /* FEA tab — everything else comes from the Design inputs */
     ["feaLoad","sel","Axial load on the rod",["stall"],[["stall","Stall push at relief (worst case)"],["work","Push at working pressure"],["none","None (bending only)"]]],
     ["feaSide","force","Side load at the rod end (optional)",0,"A sideways force at the rod eye — misalignment, a guided load pushing back."],
@@ -194,6 +215,17 @@
     if (S.neck > 0 && S.neck < d) R.neckStress = R.fmax.pull / CD.area(S.neck);
     R.AsP = S.pistD > 0 ? (S.thrSys === "inch" ? CD.stressAreaInch(S.pistD / 0.0254, S.pistTPI) : CD.stressAreaMetric(S.pistD, S.pistP)) : null;
     if (R.AsP) { R.FpistThr = S.pmax * R.f.A2; R.pistStress = R.FpistThr / R.AsP; }
+    /* retention (step 12): piston joint carries p·A2 on retraction at relief; the gland carries the highest rod-side
+       pressure (relief, or meter-out intensification) × A2. */
+    var inchT = S.thrSys === "inch", pitP = inchT ? (S.pistTPI > 0 ? 0.0254 / S.pistTPI : null) : S.pistP;
+    R.Fpj = S.pmax * R.f.A2;
+    if (S.pjLe > 0 && S.pjKn > 0 && S.pjEs > 0 && S.pjDs > 0 && S.pjEn > 0 && S.Synut > 0 && pitP > 0)
+      R.pj = CD.threadStrip(pitP, S.pjLe, S.pjKn, S.pjEs, S.pjDs, S.pjEn, S.Syrod, S.Synut);
+    R.pRodMax = S.meterOut !== "no" ? Math.max(S.pmax, R.pInt) : S.pmax; R.Fgl = R.pRodMax * R.f.A2;
+    var pitH = inchT ? (S.hdTPI > 0 ? 0.0254 / S.hdTPI : null) : S.hdP;
+    if (S.headType === "threaded" && S.hdLe > 0 && S.hdKn > 0 && S.hdEs > 0 && S.hdDs > 0 && S.hdEn > 0 && S.Sygland > 0 && S.Sytube > 0 && pitH > 0)
+      R.hd = CD.threadStrip(pitH, S.hdLe, S.hdKn, S.hdEs, S.hdDs, S.hdEn, S.Sygland, S.Sytube);
+    if (S.headType === "ring" && S.wrD > 0 && S.wrT > 0 && S.wrG > 0 && S.wrSs > 0 && S.Sytube > 0) R.wr = CD.retainingRing(S.wrD, S.wrT, S.wrG, S.wrSs, S.Sytube);
     var Fpin = Math.max(R.fmax.push, R.fmax.pull);
     R.pin = CD.pin(Fpin, S.pinD, S.pinL, +S.pinPlanes); R.Fpin = Fpin;
     R.SFpin = 0.577 * S.Sypin / R.pin.shear; /* shear yield ≈ 0.577·Sy (von Mises) */
@@ -230,7 +262,7 @@
        deliberately wide — they only catch values no structural metal can have; they are not material data. */
     [["Erod","Rod elastic modulus",4],["Etube","Tube elastic modulus",5]].forEach(function(e){ var v = S[e[0]];
       if (v != null && (v < 40e9 || v > 450e9)) add(e[2], e[1] + " looks wrong", "fail", fmt(v,"mod") + " is outside any structural metal (about " + fmt(40e9,"mod") + " – " + fmt(450e9,"mod") + "). Check the unit — every result using it is unreliable."); });
-    [["Syrod","Rod yield strength",4],["Sytube","Tube yield strength",5],["Sycap","Cap yield strength",6],["Sypin","Pin yield strength",7],["Sytie","Tie-rod yield strength",8]].forEach(function(e){ var v = S[e[0]];
+    [["Syrod","Rod yield strength",4],["Sytube","Tube yield strength",5],["Sycap","Cap yield strength",6],["Sypin","Pin yield strength",7],["Sytie","Tie-rod yield strength",8],["Synut","Piston / nut yield strength",12],["Sygland","Gland yield strength",12],["wrSs","Ring shear strength",12]].forEach(function(e){ var v = S[e[0]];
       if (v != null && (v < 50e6 || v > 2500e6)) add(e[2], e[1] + " looks wrong", "fail", fmt(v,"stress") + " is outside the range of structural metals (about " + fmt(50e6,"stress") + " – " + fmt(2500e6,"stress") + "). Check the unit."); });
     add(2, "Extension (push) force at working pressure", R.f.push >= R.needPush ? "pass" : "fail", fmt(R.f.push,"force") + " available vs " + fmt(R.needPush,"force") + " needed · stall at relief " + fmt(R.fmax.push,"force"));
     add(2, "Retraction (pull) force at working pressure", R.f.pull >= R.needPull ? "pass" : "fail", fmt(R.f.pull,"force") + " available vs " + fmt(R.needPull,"force") + " needed · stall at relief " + fmt(R.fmax.pull,"force"));
@@ -263,6 +295,10 @@
     add(10, "Cap port velocity", vband(R.vCap), fmt(R.vCap,"vel") + " at " + fmt(R.qPortCap,"flow"));
     add(10, "Rod port velocity", vband(R.vRod), fmt(R.vRod,"vel") + " at " + fmt(R.qPortRod,"flow"));
     if (S.fAcc > 0 && R.nf) add(11, "Natural frequency ≥ 4 × acceleration frequency", R.nf.f >= 4 * S.fAcc ? "pass" : "warn", num(R.nf.f,1) + " Hz vs " + num(4 * S.fAcc,1) + " Hz");
+    if (R.pj) add(12, "Piston / nut thread stripping (retraction at relief)", sfS(R.pj.F / R.Fpj, S.SFt), "strips at " + fmt(R.pj.F,"force") + " (" + R.pj.weak + ") vs " + fmt(R.Fpj,"force") + " — safety factor " + num(R.pj.F / R.Fpj));
+    else if (S.pjLe > 0) add(12, "Piston / nut thread stripping", "na", "enter all four limit diameters and the piston / nut yield");
+    if (R.hd) add(12, "Threaded head (gland) stripping", sfS(R.hd.F / R.Fgl, S.SFt), "strips at " + fmt(R.hd.F,"force") + " (" + R.hd.weak + ") vs " + fmt(R.Fgl,"force") + " — safety factor " + num(R.hd.F / R.Fgl));
+    if (R.wr) add(12, "Head retaining ring (" + R.wr.limit + " governs)", sfS(R.wr.F / R.Fgl, S.SFt), "limit " + fmt(R.wr.F,"force") + " vs " + fmt(R.Fgl,"force") + " — safety factor " + num(R.wr.F / R.Fgl));
     return C;
   }
 
@@ -367,7 +403,17 @@
       out:function(R){ return row("Lowest natural frequency over the stroke", R.nf ? num(R.nf.f,1) + " Hz at " + fmt(R.nf.x,"len") + " extended" : "—") +
         row("Oil spring stiffness there", R.nf ? num(R.nf.k / 1e6,1) + " N/µm" : "—") +
         row("Oil compression at maximum pressure (cap side full)", fmt(R.dV,"vol")) +
-        '<p class="note">Low natural frequency means bounce and slow, jerky positioning. Short hoses, rigid tube and fewer dead volumes raise it.</p>'; } }
+        '<p class="note">Low natural frequency means bounce and slow, jerky positioning. Short hoses, rigid tube and fewer dead volumes raise it.</p>'; } },
+    { n:12, t:"Head and piston retention", sub:"Gland and piston-to-rod joint against stripping", f:["pjLe","pjKn","pjEs","pjDs","pjEn","Synut","headType","hdP","hdTPI","hdLe","hdKn","hdEs","hdDs","hdEn","Sygland","wrD","wrT","wrG","wrSs"],
+      out:function(R){ var h = row("Gland load (rod-side " + fmt(R.pRodMax,"press") + " × A2)", fmt(R.Fgl,"force")) + row("Piston joint load (relief × A2)", fmt(R.Fpj,"force"));
+        h += "<h4>Piston to rod</h4>" + (R.pj ? row("Shear area, rod thread (As)", fmt(R.pj.As,"area")) + row("Shear area, piston / nut thread (An)", fmt(R.pj.An,"area")) +
+          row("Stripping load (" + R.pj.weak + " first)", fmt(R.pj.F,"force"), "hl") + row("Safety factor", num(R.pj.F / R.Fpj), R.pj.F / R.Fpj < S.SFt ? "bad" : "good") : '<p class="note">Enter engagement length, the four limit diameters and the piston / nut yield to run it.</p>');
+        h += "<h4>Head (gland)</h4>";
+        if (S.headType === "bolted") h += '<p class="note">Bolted head: check the bolts in step 8 (set construction to mill type / bolted).</p>';
+        else if (R.hd) h += row("Shear area, gland thread (As)", fmt(R.hd.As,"area")) + row("Shear area, tube thread (An)", fmt(R.hd.An,"area")) + row("Stripping load (" + R.hd.weak + " first)", fmt(R.hd.F,"force"), "hl") + row("Safety factor", num(R.hd.F / R.Fgl), R.hd.F / R.Fgl < S.SFt ? "bad" : "good");
+        else if (R.wr) h += row("Ring shear limit", fmt(R.wr.ringShear,"force")) + row("Groove first-yield limit", fmt(R.wr.grooveYield,"force")) + row("Governs", R.wr.limit, "hl") + row("Safety factor", num(R.wr.F / R.Fgl), R.wr.F / R.Fgl < S.SFt ? "bad" : "good");
+        else h += '<p class="note">Enter the head details to run it.</p>';
+        return h + '<p class="note">Stripping uses the geometric minimum shear areas of Machinery\'s Handbook (31st ed., Formulas 5–6) = FED-STD-H28/2B, with shear yield 0.577·Sy; real effective areas are somewhat smaller, so keep a margin. Rings use the Smalley ring-shear and groove-yield formulas (Rotor Clip\'s groove correction factor not applied). Round-wire rings are not covered.</p>'; } }
   ];
 
   function renderSteps(){
@@ -394,6 +440,8 @@
   function visibility(){
     var inch = S.thrSys === "inch";
     toggle("thrP", !inch); toggle("thrTPI", inch); toggle("pistP", !inch); toggle("pistTPI", inch);
+    var ht = S.headType; ["hdLe","hdKn","hdEs","hdDs","hdEn","Sygland"].forEach(function(k){ toggle(k, ht === "threaded"); });
+    toggle("hdP", ht === "threaded" && !inch); toggle("hdTPI", ht === "threaded" && inch); ["wrD","wrT","wrG","wrSs"].forEach(function(k){ toggle(k, ht === "ring"); });
     var tie = S.constr !== "welded"; ["nTie","tieD","tieP","tieTPI","Sytie"].forEach(function(k){ toggle(k, tie); }); if (tie){ toggle("tieP", !inch); toggle("tieTPI", inch); } toggle("weldA", !tie); toggle("weldS", !tie);
   }
   function toggle(k, on){ var el = $("in-" + k); if (el) el.closest(".fld").style.display = on ? "" : "none"; }
@@ -502,7 +550,7 @@
   if ($("btnOpenAll")) $("btnOpenAll").onclick = function(){ setAll(true); };
   if ($("btnCloseAll")) $("btnCloseAll").onclick = function(){ setAll(false); };
   /* Guide: the same step pictures beside each step's write-up */
-  if (window.FIGS) for (var gi = 1; gi <= 11; gi++){ var ga = $("g-s" + gi), gf = FIGS[gi]; if (ga && gf){ var gh = ga.querySelector("h2");
+  if (window.FIGS) for (var gi = 1; gi <= 12; gi++){ var ga = $("g-s" + gi), gf = FIGS[gi]; if (ga && gf){ var gh = ga.querySelector("h2");
     gh.insertAdjacentHTML("afterend", '<figure class="pic">' + gf.svg + '<figcaption>' + esc(gf.cap) + '</figcaption></figure>'); } }
   /* views */
   function show(v){ document.querySelectorAll(".view").forEach(function(s){ s.hidden = s.id !== "view-" + v; });

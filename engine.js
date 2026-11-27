@@ -270,10 +270,40 @@ var CD = (function(){
   /* Oil compression on the cap side at pressure p: ΔV = V·p/β (bulk modulus). */
   function compression(V, p, beta){ return V * p / beta; }
 
+  /* ---- Thread stripping (gap 3) ----
+     Geometric minimum shear areas, Machinery's Handbook 31st ed. "Screw thread stress formulas", Formulas (5) and (6),
+     = FED-STD-H28/2B (1991) (via Engineers Edge, verified 2026-11-27):
+       external thread  As = π·n·Le·Kn,max·[1/(2n) + 0.57735·(Es,min − Kn,max)]
+       internal thread  An = π·n·Le·Ds,min·[1/(2n) + 0.57735·(Ds,min − En,max)]
+     n = threads per unit length = 1/P. Kn,max = max minor dia of the internal thread; Es,min = min pitch dia of the
+     external thread; Ds,min = min major dia of the external thread; En,max = max pitch dia of the internal thread.
+     Written for UN form; Engineers Edge and Machinery's Handbook note it is used for ISO metric (same 60° form).
+     Conflicts recorded: an Engineers Edge page prints the internal bracket as "1/1/n" and an often-quoted forum copy
+     uses Kn,max in the internal formula — both typos against Machinery's Handbook (6), which governs.
+     Stripping load here = shear yield × area, shear yield = 0.577·Sy (von Mises) — a yield basis, below the
+     ultimate-shear basis some texts use. The handbooks note effective areas are somewhat less than geometric ones. */
+  function threadShear(P, Le, Knmax, Esmin, Dsmin, Enmax){
+    var n = 1 / P, As = PI * n * Le * Knmax * (P / 2 + 0.57735 * (Esmin - Knmax)), An = PI * n * Le * Dsmin * (P / 2 + 0.57735 * (Dsmin - Enmax));
+    return { As:As, An:An };
+  }
+  function threadStrip(P, Le, Knmax, Esmin, Dsmin, Enmax, SyExt, SyInt){
+    var a = threadShear(P, Le, Knmax, Esmin, Dsmin, Enmax), Fe = 0.577 * SyExt * a.As, Fi = 0.577 * SyInt * a.An;
+    return { As:a.As, An:a.An, Fext:Fe, Fint:Fi, F:Math.min(Fe, Fi), weak:Fe <= Fi ? "external (male) thread" : "internal (female) thread" };
+  }
+  /* ---- Retaining ring holding a head (gap 2, flat / spiral rings) ----
+     Smalley (Spirolox) design guide: ring shear  P_R = π·D·T·Ss / K ; groove yield  P_G = π·D·d·Sy / K
+     (D = housing bore at the groove, T = ring thickness, d = groove depth, Ss = ring shear strength, Sy = groove-wall
+     yield, K = safety factor). Rotor Clip "Retaining ring load capacity": same products, its groove formula carries an
+     extra correction factor Gf from a table not available here — this uses Gf = 1 and says so. Returned without K
+     (capacity at the limit); the caller applies the user's factor. Smalley notes the groove limit is the first
+     permanent deformation, not fracture. Round-wire rings are NOT covered (different section) — named gap. */
+  function retainingRing(D, T, dg, Ss, Sy){ var Pr = PI * D * T * Ss, Pg = PI * D * dg * Sy;
+    return { ringShear:Pr, grooveYield:Pg, F:Math.min(Pr, Pg), limit:Pr <= Pg ? "ring shear" : "groove yield" }; }
+
   return { G:G, area:area, BORES:flat(BORES), RODS:flat(RODS), NFPA_BORES:NFPA_BORES, NFPA_RODS:NFPA_RODS, STROKES:STROKES, STROKE_FACTORS:STROKE_FACTORS, stopTube:stopTube,
     forces:forces, requiredBore:requiredBore, speeds:speeds, intensification:intensification, regen:regen, hydPower:hydPower,
     rodBuckling:rodBuckling, minRod:minRod, steppedBuckling:steppedBuckling, dnvBuckling:dnvBuckling, beamFEA:beamFEA, tube:tube, tubeMinWall:tubeMinWall,
     plate:plate, plateMinT:plateMinT, weld:weld, stressAreaMetric:stressAreaMetric, stressAreaInch:stressAreaInch,
-    pin:pin, tieRods:tieRods, cushion:cushion, velocity:velocity, VEL_GUIDE:VEL_GUIDE, natFreq:natFreq, compression:compression };
+    pin:pin, tieRods:tieRods, cushion:cushion, velocity:velocity, VEL_GUIDE:VEL_GUIDE, natFreq:natFreq, compression:compression, threadShear:threadShear, threadStrip:threadStrip, retainingRing:retainingRing };
 })();
 /* END ENGINE */

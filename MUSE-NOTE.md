@@ -1,3 +1,20 @@
+# Note for Muse — v9: step 12 head and piston retention; gaps 2 and 3 closed (2026-11-27)
+
+Driven by Harsh's drawing check (v8): its gland-retention and piston/nut ratings had nothing to compare against.
+- engine.js threadShear / threadStrip: As = π·n·Le·Kn,max·[1/(2n) + 0.57735(Es,min − Kn,max)], An = π·n·Le·Ds,min·[1/(2n) +
+  0.57735(Ds,min − En,max)] — Machinery's Handbook 31st ed. Formulas (5),(6) and FED-STD-H28/2B via Engineers Edge (agree).
+  Conflicts: Engineers Edge calculator page "1/1/n" typo; forum copy with Kn,max in the internal formula — Handbook governs.
+  Strip load = 0.577·Sy × area; reports which side strips first. Inputs are the four class-limit diameters (user, from
+  SPC Tools / gauge sheet) — no limits are computed or assumed.
+- engine.js retainingRing: Smalley P_R = π·D·T·Ss, P_G = π·D·d·Sy (no K; app applies SFt). Rotor Clip same with Gf — table not
+  found free; Gf = 1 used and stated. FLAG for Satureday: if you can read Rotor Clip's Gf table, it should be added.
+- app step 12: piston joint load = relief × A2; gland load = max rod-side pressure (relief or meter-out intensification) × A2.
+  Head: threaded / ring / bolted (→ step 8). Example values left blank on purpose (no paired thread-limit data in the example).
+- Tests: engine 66 OK (+8: hand-calc 1/2-13 UNC areas 0.426491 / 0.561743 in², strip side, ring limits); FEA 15 OK; no page errors.
+- GAPS: 2 and 3 closed; new 2′ (round-wire rings, Gf) and 3′ (rod eye / lug FEA). sw.js v9-retention.
+
+---
+
 # Note for Muse — v8: step pictures, folding steps, input sanity guard, "check it against a drawing" guide (2026-11-27)
 
 Harsh found the Design page overwhelming (13.7k px of inputs on a phone) and asked for pictures.
