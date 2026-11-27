@@ -1,3 +1,43 @@
+# Note for Muse — v6: FEA tab (beam model of the cylinder) (2026-11-27)
+
+Harsh: "is it possible to add my own small FEA analysis tool?" — Yes; built as an FEA tab, scoped as you set it.
+
+## What it is
+engine.js beamFEA(): Euler–Bernoulli Hermite beam elements (v, θ), consistent load vectors, geometric stiffness Kg;
+static (K − P·Kg)u = f (P-delta beam-column) + eigen buckling K·φ = λ·Kg·φ; gland rotational spring Kf (Baragetti &
+Villa); end conditions from step 4's K; mesh capped at 60 elements/segment. Moment = EI·v'' at element ends (averaged).
+Geometry from the Design inputs (no re-typing): tube = mount → gland (Lc − stick-out), rod = gland → rod end
+(stick-out + stroke), I from bore/tube OD/rod, E from steps 4–5, Kf from step 4. FEA-only inputs: axial load (stall /
+working / none), side load at rod end, self-weight (auto = on when horizontal; steel 7850, oil 870 kg/m³ editable,
+bore full of oil), elements/segment. Outputs: eigen buckling load + factor, max deflection, max moment, P-delta
+amplification, max stress (rod axial + bending; tube bending only — pressure stress stays in step 5), SF on yield,
+three charts (deflection, moment, stress along the length with the gland marked), convergence table at 5/10/20/40/60.
+
+## Verification — tests/fea.test.js, 15 checks, all pass
+cantilever tip FL³/3EI 42.19409 mm exact; root moment FL exact; SS uniform 5wL⁴/384EI exact; wL²/8 +0.17 % at 20 el;
+Euler pin–pin and fixed–free within 1e-5; beam-column with P = 0.6·Pcr + uniform w vs Timoshenko–Gere secant formula:
+deflection 4.129577 vs 4.129578 mm, moment within 0.05 %; stepped column vs exact characteristic equation; Baragetti
+3855 / 3111 / 3629 N; mesh convergence monotonic 7.5e-3 → 5.3e-8; mesh cap.
+Mechanika 2016 (Narvydas) FEA: NOT matched, and cannot be — its linear FEA buckling stresses are below rod-only Euler,
+impossible for a rigid-joint tube+rod model, so his model has unspecified joint effects. Shown on the tab as "not
+matched" with that reason. Every other gate met → shipped as an analysis tool, not "visualisation only". Your call
+if you read that gate differently.
+Live example (metric, horizontal): buckling 1,188.25 kN (= step 4 rigid), factor 7.56; deflection 0.169 mm at
+1,169 mm; moment 221 N·m at 884 mm; amplification ×1.152; max stress 47 MPa in the rod (40.8 axial + bending), SF 11.01;
+self-weight 0.532 kN/m tube+oil, 0.296 kN/m rod (hand: π/4·0.07²·7850·9.81 = 296 N/m). 60 el/segment updates in
+~0.15–0.2 s headless.
+
+## Optional lug (2D plane stress) — NOT built
+The gate was "only if it verifies just as cleanly". A pin-loaded lug needs pin–hole contact (or an assumed bearing
+pressure distribution, which is itself the unknown), and the reference to verify it against is pin-loaded-lug Kt
+data (Peterson's Stress Concentration Factors) — not free. The open-hole K = 3 (Kirsch) case would verify the mesh but
+not the lug. Recorded under gap 3 with what would close it.
+
+Guide tab: new "FEA tab" section (plain language + say-it-out-loud). CLAUDE.md routine now runs both test files.
+sw.js cylinder-designer-v6-fea.
+
+---
+
 # Note for Muse — v5: Guide tab for Harsh (2026-11-27)
 
 Harsh: "i have no idea what this is". Added a **Guide** tab on the site (between Design and Learn), plain language:

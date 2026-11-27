@@ -1,6 +1,6 @@
 // Cylinder Designer service worker — offline after the first visit. Page network-first; files cache-first.
 // Cleanup touches only cylinder-designer-* caches (this app shares harsh3261.github.io with the other apps).
-const CACHE = 'cylinder-designer-v5-guide';
+const CACHE = 'cylinder-designer-v6-fea';
 const SHELL = ['./index.html', './engine.js', './app.js', './manifest.json', './icon.svg'];
 const PAGE = new URL('./index.html', self.location).href;
 const SCOPE = self.registration.scope;

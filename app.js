@@ -97,7 +97,14 @@
     ["beta","mod","Effective bulk modulus of the oil",1.4e9,"Mineral oil is typically 1.4–1.7 GPa; entrained air and hoses lower it."],
     ["V1d","vol","Dead volume, cap side (lines + port)",0.0005,""],
     ["V2d","vol","Dead volume, rod side (lines + port)",0.0005,""],
-    ["fAcc","freq","Frequency of acceleration wanted (optional)",null,"Natural frequency should be at least 4× this (Delta Motion rule of thumb)."]
+    ["fAcc","freq","Frequency of acceleration wanted (optional)",null,"Natural frequency should be at least 4× this (Delta Motion rule of thumb)."],
+    /* FEA tab — everything else comes from the Design inputs */
+    ["feaLoad","sel","Axial load on the rod",["stall"],[["stall","Stall push at relief (worst case)"],["work","Push at working pressure"],["none","None (bending only)"]]],
+    ["feaSide","force","Side load at the rod end (optional)",0,"A sideways force at the rod eye — misalignment, a guided load pushing back."],
+    ["feaWt","sel","Self-weight",["auto"],[["auto","Automatic — on when the cylinder is horizontal"],["on","On"],["off","Off"]]],
+    ["rhoS","mass","Steel density (per m³)",7850,"kg per cubic metre."],
+    ["rhoO","mass","Oil density (per m³)",870,"kg per cubic metre; the bore is taken as full of oil."],
+    ["feaN","n","Elements per segment",20,"More elements = finer result; capped at 60 so phones stay quick."]
   ];
   var FD = {}; F.forEach(function(f){ var sel = f[1] === "sel" && Array.isArray(f[4]); FD[f[0]] = { k:f[0], q:f[1], label:f[2], def:f[3], hint:sel ? (f[5] || "") : f[4], opts:sel ? f[4] : f[5] }; });
   FD.mount.opts = CD.STROKE_FACTORS.map(function(s){ return [s.id, s.group + " · rod: " + s.rod + " · factor " + s.f.toFixed(1)]; });
@@ -198,6 +205,18 @@
     /* dynamics */
     R.nf = CD.natFreq(S.beta, R.f.A1, R.f.A2, S.stroke, S.V1d, S.V2d, Math.max(S.mass, 1e-6));
     R.dV = CD.compression(S.V1d + R.vol1, S.pmax, S.beta);
+    /* FEA (tab) — geometry straight from the Design inputs */
+    if (S.Do > D && S.Lc > S.stick){
+      var g = CD.G, Lt2 = S.Lc - S.stick, Lr2 = S.stick + S.stroke, Itb = Math.PI * (Math.pow(S.Do, 4) - Math.pow(D, 4)) / 64, Ird = Math.PI * Math.pow(d, 4) / 64;
+      var wOn = S.feaWt === "on" || (S.feaWt === "auto" && S.dir === "horizontal");
+      var wT = wOn ? (Math.PI / 4 * (S.Do * S.Do - D * D) * S.rhoS + Math.PI / 4 * D * D * S.rhoO) * g : 0, wR = wOn ? Math.PI / 4 * d * d * S.rhoS * g : 0;
+      var Pax = S.feaLoad === "stall" ? R.fmax.push : S.feaLoad === "work" ? R.f.push : 0;
+      var bcs = { "1":["pin","pin"], "0.7":["fixed","pin"], "0.5":["fixed","fixed"], "2":["fixed","free"] }[S.K] || ["pin","pin"];
+      var mk = function(nP){ return CD.beamFEA({ segs:[{ L:Lt2, EI:S.Etube * Itb, E:S.Etube, A:1e9, c:S.Do / 2, w:wT }, { L:Lr2, EI:S.Erod * Ird, E:S.Erod, A:CD.area(d), c:d / 2, w:wR }],
+        endA:bcs[0], endB:bcs[1], Kf:S.Kf > 0 ? S.Kf : 0, P:Pax, Fend:S.feaSide || 0, nPer:nP }); };
+      R.fea = mk(Math.round(S.feaN) || 20); R.feaP = Pax; R.feaLt = Lt2; R.feaW = [wT, wR];
+      R.feaConv = [5, 10, 20, 40, 60].map(function(nP){ var r = mk(nP); return { n:nP, Pcr:r.Pcr, v:r.maxV, M:r.maxM }; });
+    }
     R.accExt = S.vExt > 0 && S.cushRod > 0 ? S.vExt * S.vExt / (2 * S.cushRod) : null;
     return R;
   }
@@ -352,6 +371,7 @@
           return field(k, k === "D" ? isoPick("D") : k === "d" ? isoPick("d") : k === "stroke" ? isoPick("stroke") : ""); }).join("") + '</div><div class="outs" id="out' + s.n + '"></div></div></section>';
     }).join("");
     $("toc").innerHTML = STEPS.map(function(s){ return '<a href="#step' + s.n + '"><span>' + s.n + "</span>" + esc(s.t) + '<i id="toc' + s.n + '"></i></a>'; }).join("") + '<a href="#report"><span>✓</span>Report</a>';
+    var fi = $("fea-ins"); if (fi) fi.innerHTML = ["feaLoad","feaSide","feaWt","rhoS","rhoO","feaN"].map(function(k){ return field(k); }).join("");
     visibility();
   }
   function visibility(){
@@ -378,7 +398,51 @@
       '<p class="note">Reference calculations only. Verify against your cylinder standard (ISO 6020 / 6022 / NFPA), the seal and material suppliers\' data and the customer specification. Material strengths shown are inputs, not data.</p>' +
       '<div class="actions"><button type="button" id="btnPrint">Print / save PDF</button></div>';
     $("btnPrint").onclick = function(){ window.print(); };
-    drawCyl(R);
+    drawCyl(R); renderFEA(R);
+  }
+
+  /* ---------- FEA tab ---------- */
+  function mfmt(m){ return sys === "i" ? num(m / 0.112984829, 0) + " lbf·in" : num(m, 0) + " N·m"; }
+  function plot(id, xs, ys, unitQ, label){
+    var el = $(id); if (!el) return;
+    var draw = function(){ var W = el.clientWidth || 600, H = 150, pad = 34, xm = xs[xs.length - 1] || 1;
+      var ymin = Math.min(0, Math.min.apply(null, ys)), ymax = Math.max(0, Math.max.apply(null, ys)); if (ymax - ymin < 1e-30){ ymax = 1; ymin = -1; }
+      var X = function(x){ return pad + (W - pad - 8) * x / xm; }, Y = function(y){ return 12 + (H - 32) * (ymax - y) / (ymax - ymin); };
+      var pts = xs.map(function(x, i){ return X(x).toFixed(1) + "," + Y(ys[i]).toFixed(1); }).join(" ");
+      var peak = ys.reduce(function(a, b){ return Math.abs(b) > Math.abs(a) ? b : a; }, 0), ip = ys.indexOf(peak);
+      el.innerHTML = '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" height="' + H + '" role="img" aria-label="' + esc(label) + '">' +
+        '<line x1="' + pad + '" y1="' + Y(0) + '" x2="' + (W - 8) + '" y2="' + Y(0) + '" stroke="#3a4558"/>' +
+        (R0.feaLt ? '<line x1="' + X(R0.feaLt) + '" y1="8" x2="' + X(R0.feaLt) + '" y2="' + (H - 18) + '" stroke="#46536a" stroke-dasharray="3 3"/><text x="' + (X(R0.feaLt) + 4) + '" y="18" fill="#7f8a9c" font-size="11">gland</text>' : "") +
+        '<polyline points="' + pts + '" fill="none" stroke="#f0a33a" stroke-width="2"/>' +
+        '<circle cx="' + X(xs[ip]) + '" cy="' + Y(peak) + '" r="3.5" fill="#4fb3c9"/>' +
+        '<text x="' + Math.min(X(xs[ip]) + 6, W - 120) + '" y="' + Math.max(Y(peak) - 6, 22) + '" fill="#e8ecf2" font-size="12">' + esc(unitQ === "mom" ? mfmt(peak) : fmt(peak, unitQ, unitQ === "len" ? (sys === "i" ? 4 : 3) : null)) + "</text>" +
+        '<text x="' + pad + '" y="' + (H - 4) + '" fill="#7f8a9c" font-size="11">mount</text><text x="' + (W - 8) + '" y="' + (H - 4) + '" fill="#7f8a9c" font-size="11" text-anchor="end">rod end · ' + esc(fmt(xm, "len")) + "</text></svg>"; };
+    draw(); if (window.ResizeObserver && !el._ro){ el._ro = new ResizeObserver(function(){ draw(); }); el._ro.observe(el); }
+  }
+  var R0 = {};
+  function renderFEA(R){
+    R0 = R; var o = $("fea-out"); if (!o) return;
+    if (!R.fea){ o.innerHTML = '<p class="bad">Enter the tube outside diameter (step 5) and a pin-to-pin length longer than the rod stick-out (step 4).</p>'; return; }
+    var f = R.fea, rodY = S.Syrod, tubeY = S.Sytube;
+    var h = '<h4>Buckling (eigenvalue)</h4>' + row("Buckling load of the whole cylinder", fmt(f.Pcr,"force")) +
+      row("Axial load applied", fmt(R.feaP,"force")) + (R.feaP > 0 ? row("Factor = buckling load ÷ applied", num(f.Pcr / R.feaP), f.Pcr / R.feaP < S.SFb ? "bad" : "good") : "") +
+      row("Gland joint", S.Kf > 0 ? "flexible, Kf " + fmt(S.Kf,"rstiff") : "rigid (no Kf entered — upper bound)") +
+      row("End conditions", { "1":"pinned – pinned", "0.7":"fixed – pinned", "0.5":"fixed – fixed", "2":"fixed – free" }[S.K]);
+    if (f.unstable) return (o.innerHTML = h + '<p class="bad">The axial load is above the buckling load — no static solution exists.</p>');
+    var sm = f.smax, inRod = sm.si === 1, SFs = (inRod ? rodY : tubeY) / sm.total;
+    h += '<h4>Bending under the loads (static, includes the P-delta effect)</h4>' +
+      row("Largest sideways deflection", fmt(Math.abs(f.maxV),"len", sys === "i" ? 4 : 3) + " at " + fmt(f.xV,"len") + " from the mount") +
+      row("Largest bending moment", mfmt(Math.abs(f.maxM)) + " at " + fmt(f.xM,"len")) +
+      row("Amplification by the axial load", f.amp ? "× " + num(f.amp, 3) : "—") +
+      row("Highest stress", fmt(sm.total,"stress") + " in the " + (inRod ? "rod (axial + bending)" : "tube (bending; pressure stress is in step 5)") + " at " + fmt(sm.x,"len")) +
+      row("Safety factor on " + (inRod ? "rod" : "tube") + " yield", num(SFs), SFs < S.SFt ? "bad" : "good") +
+      row("Lateral loads used", "self-weight " + (R.feaW[0] ? fmt(R.feaW[0],"force",3) + "/m tube + oil, " + fmt(R.feaW[1],"force",3) + "/m rod" : "off") + " · side load " + fmt(S.feaSide || 0,"force"));
+    h += '<div class="fig"><h4>Deflection along the cylinder</h4><div id="pl-v"></div><h4>Bending moment</h4><div id="pl-m"></div><h4>Stress (rod: axial + bending · tube: bending)</h4><div id="pl-s"></div></div>';
+    h += '<h4>Mesh convergence</h4><table class="ft"><tr><th>Elements / segment</th><th>Buckling load</th><th>Max deflection</th><th>Max moment</th></tr>' +
+      R.feaConv.map(function(c){ return "<tr><td>" + c.n + "</td><td>" + fmt(c.Pcr,"force") + "</td><td>" + (c.v == null ? "—" : fmt(Math.abs(c.v),"len", sys === "i" ? 5 : 3)) + "</td><td>" + (c.M == null ? "—" : mfmt(Math.abs(c.M))) + "</td></tr>"; }).join("") + "</table>";
+    o.innerHTML = h;
+    plot("pl-v", f.x, f.v, "len", "deflection"); plot("pl-m", f.x, f.M, "mom", "bending moment");
+    var sx = f.stress.map(function(t){ return t.x; }), sy = f.stress.map(function(t){ return t.total; }); plot("pl-s", sx, sy, "stress", "stress");
   }
 
   /* to-scale side view */
@@ -423,5 +487,5 @@
   window.CDshow = show;
 
   setUnits(sys);
-  if (/^#(guide|learn|refs)$/.test(location.hash)) show(location.hash.slice(1));
+  if (/^#(guide|fea|learn|refs)$/.test(location.hash)) show(location.hash.slice(1));
 })();

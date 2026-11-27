@@ -20,7 +20,7 @@ These rules are standing. They apply to every session and override convenience.
 ## Change routine (every data or feature change)
 1. Get the sources and pair them value by value; note any disagreement.
 2. Make the change, with a source comment at the data block (standard, edition, table, date verified).
-3. Run `node tests/engine.test.js` — must print OK. New formulas need a test whose expected values come from a hand calculation, a published table or a second numerical method.
+3. Run `node tests/engine.test.js` and `node tests/fea.test.js` — both must print OK. New formulas need a test whose expected values come from a hand calculation, a published table or a second numerical method.
 4. Load the page headless (Playwright: /opt/npm-tools/node_modules/playwright, Chrome /usr/bin/google-chrome,
    `python3 -m http.server 8780`) and confirm there are no page errors. Watch for apostrophes inside single-quoted JS strings.
 5. Bump the cache name in sw.js on every publish.

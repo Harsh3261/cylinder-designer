@@ -130,6 +130,61 @@ var CD = (function(){
     var L = L1 + L2, Z = L1 / I1 + L2 / I2 + (1 / I2 - 1 / I1) * L / (2 * PI) * Math.sin(2 * PI * L1 / L);
     return { FE:PI * PI * E / (L * Z), Z:Z };
   }
+  /* ---- Beam FEA of the cylinder (tube + rod as a stepped beam-column) ----
+     Euler–Bernoulli Hermite beam elements (2 nodes, v and θ), consistent load vectors for distributed lateral load,
+     geometric stiffness Kg for the axial compression P. Static: (K − P·Kg)·u = f  (P-delta beam-column).
+     Buckling: smallest λ of K·φ = λ·Kg·φ. Gland: optional rotational spring Kf between segment 1 and 2 (Baragetti &
+     Villa 2016). Moment M = EI·v'' from the Hermite shape functions at element ends (averaged at shared nodes).
+     segs: [{L, EI, A, c, w}] from end A (mount) to end B (rod end): c = outer radius (bending stress M·c/I),
+     w = lateral distributed load N/m (e.g. self-weight). Fend = lateral force at end B. SI units. */
+  function beamFEA(o){
+    var segs = o.segs, nPer = Math.max(1, Math.min(o.nPer || 20, 60)), Kj = o.Kf > 0 && isFinite(o.Kf) ? o.Kf : 0;
+    var x = [0], el = [];
+    segs.forEach(function(sg, si){ var h = sg.L / nPer; for (var i = 0; i < nPer; i++){ el.push({ L:h, s:sg, si:si }); x.push(x[x.length - 1] + h); } });
+    var ne = el.length, jn = nPer, n = 2 * (ne + 1) + (Kj ? 1 : 0), extra = 2 * (ne + 1);
+    var K = zeros(n), Kg = zeros(n), f = new Array(n).fill(0), dofs = [];
+    for (var e = 0; e < ne; e++){
+      var L = el[e].L, EI = el[e].s.EI, k = EI / (L * L * L), g = 1 / (30 * L), L2 = L * L, w = el[e].s.w || 0;
+      var dof = [2 * e, 2 * e + 1, 2 * e + 2, 2 * e + 3]; if (Kj && e === jn) dof[1] = extra; dofs.push(dof);
+      var ke = [[12,6*L,-12,6*L],[6*L,4*L2,-6*L,2*L2],[-12,-6*L,12,-6*L],[6*L,2*L2,-6*L,4*L2]];
+      var kg = [[36,3*L,-36,3*L],[3*L,4*L2,-3*L,-L2],[-36,-3*L,36,-3*L],[3*L,-L2,-3*L,4*L2]];
+      var fe = [w * L / 2, w * L2 / 12, w * L / 2, -w * L2 / 12];
+      for (var a = 0; a < 4; a++){ f[dof[a]] += fe[a]; for (var b = 0; b < 4; b++){ K[dof[a]][dof[b]] += k * ke[a][b]; Kg[dof[a]][dof[b]] += g * kg[a][b]; } }
+    }
+    if (Kj){ var t1 = 2 * jn + 1; K[t1][t1] += Kj; K[extra][extra] += Kj; K[t1][extra] -= Kj; K[extra][t1] -= Kj; }
+    if (o.Fend) f[2 * ne] += o.Fend;
+    var fixed = [];
+    function bc(t, node){ if (t === "pin" || t === "fixed") fixed.push(2 * node); if (t === "fixed") fixed.push(2 * node + 1); }
+    bc(o.endA || "pin", 0); bc(o.endB || "pin", ne);
+    var free = []; for (var i = 0; i < n; i++) if (fixed.indexOf(i) < 0) free.push(i);
+    var sub = function(M){ return free.map(function(i){ return free.map(function(j){ return M[i][j]; }); }); };
+    var Kr = sub(K), Gr = sub(Kg), m = free.length;
+    /* buckling (inverse iteration) */
+    var LU = lu(Kr), v = [], lam = 0, prev = 0;
+    for (i = 0; i < m; i++) v.push(Math.sin((i + 1) * 1.37) + 1);
+    for (var it = 0; it < 800; it++){ var y = luSolve(LU, mv(Gr, v)), nr = Math.sqrt(dot(y, y)); for (i = 0; i < m; i++) y[i] /= nr; v = y;
+      lam = dot(v, mv(Kr, v)) / dot(v, mv(Gr, v)); if (it > 5 && Math.abs(lam - prev) <= 1e-10 * Math.abs(lam)) break; prev = lam; }
+    var out = { Pcr:lam, x:x, ne:ne };
+    var P = o.P || 0; if (P >= lam){ out.unstable = true; return out; }
+    var A = Kr.map(function(r, ii){ return r.map(function(val, jj){ return val - P * Gr[ii][jj]; }); });
+    var us = luSolve(lu(A), free.map(function(i){ return f[i]; })), u = new Array(n).fill(0);
+    free.forEach(function(d, ii){ u[d] = us[ii]; });
+    /* nodal results */
+    var vN = [], Msum = new Array(ne + 1).fill(0), Mcnt = new Array(ne + 1).fill(0), stress = [];
+    for (i = 0; i <= ne; i++) vN.push(u[2 * i]);
+    for (e = 0; e < ne; e++){ var d = dofs[e], Le = el[e].L, v1 = u[d[0]], th1 = u[d[1]], v2 = u[d[2]], th2 = u[d[3]], EIe = el[e].s.EI;
+      var k0 = (-6 * v1 - 4 * Le * th1 + 6 * v2 - 2 * Le * th2) / (Le * Le), k1 = (6 * v1 + 2 * Le * th1 - 6 * v2 + 4 * Le * th2) / (Le * Le);
+      var M0 = EIe * k0, M1 = EIe * k1; Msum[e] += M0; Mcnt[e]++; Msum[e + 1] += M1; Mcnt[e + 1]++;
+      var sg = el[e].s, I = sg.EI / (sg.E || 1);
+      [M0, M1].forEach(function(Mm, q){ var sb = Math.abs(Mm) * sg.c / I; stress.push({ x:x[e + q], si:el[e].si, bend:sb, total:P / sg.A + sb }); }); }
+    var MN = Msum.map(function(sm, i){ return sm / Mcnt[i]; });
+    var maxV = 0, iV = 0; vN.forEach(function(val, i){ if (Math.abs(val) > Math.abs(maxV)){ maxV = val; iV = i; } });
+    var maxM = 0, iM = 0; MN.forEach(function(val, i){ if (Math.abs(val) > Math.abs(maxM)){ maxM = val; iM = i; } });
+    var smax = stress.reduce(function(a, b){ return b.total > a.total ? b : a; }, stress[0]);
+    out.v = vN; out.M = MN; out.stress = stress; out.maxV = maxV; out.xV = x[iV]; out.maxM = maxM; out.xM = x[iM]; out.smax = smax;
+    out.amp = lam > 0 ? 1 / (1 - P / lam) : null;
+    return out;
+  }
   function zeros(n){ var a = []; for (var i = 0; i < n; i++){ a.push(new Array(n).fill(0)); } return a; }
   function mv(A, x){ return A.map(function(r){ var s = 0; for (var j = 0; j < r.length; j++) s += r[j] * x[j]; return s; }); }
   function dot(a, b){ var s = 0; for (var i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
@@ -212,7 +267,7 @@ var CD = (function(){
 
   return { G:G, area:area, BORES:flat(BORES), RODS:flat(RODS), NFPA_BORES:NFPA_BORES, NFPA_RODS:NFPA_RODS, STROKES:STROKES, STROKE_FACTORS:STROKE_FACTORS, stopTube:stopTube,
     forces:forces, requiredBore:requiredBore, speeds:speeds, intensification:intensification, regen:regen, hydPower:hydPower,
-    rodBuckling:rodBuckling, minRod:minRod, steppedBuckling:steppedBuckling, dnvBuckling:dnvBuckling, tube:tube, tubeMinWall:tubeMinWall,
+    rodBuckling:rodBuckling, minRod:minRod, steppedBuckling:steppedBuckling, dnvBuckling:dnvBuckling, beamFEA:beamFEA, tube:tube, tubeMinWall:tubeMinWall,
     plate:plate, plateMinT:plateMinT, weld:weld, stressAreaMetric:stressAreaMetric, stressAreaInch:stressAreaInch,
     pin:pin, tieRods:tieRods, cushion:cushion, velocity:velocity, VEL_GUIDE:VEL_GUIDE, natFreq:natFreq, compression:compression };
 })();
