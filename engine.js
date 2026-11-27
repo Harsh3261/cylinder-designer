@@ -126,7 +126,12 @@ var CD = (function(){
      by independent derivation (flexibility-weighted sine mode gives the identical expression) and by reduction to
      Euler when I1 = I2. It reads 0–18 % ABOVE the exact rigid-joint elastic load (steppedBuckling) — which DNV's
      factor of 4 is meant to cover; never show it as the exact load. SI in/out: returns N. */
-  function dnvBuckling(E, I1, I2, L1, L2){
+  /* §4.4 (verbatim, July 2017): "valid when the hydraulic cylinder is simply supported at both ends. For other mounting
+     configurations, L1 and L2 shall be calculated as effective lengths described by Euler method." → K multiplies both
+     (K = 1 pinned–pinned, 0.7 fixed–pinned, 0.5 fixed–fixed, 2 fixed–free). §4.5.2: a Society-approved, more accurate
+     method may use a factor not less than 2.7. */
+  function dnvBuckling(E, I1, I2, L1, L2, K){
+    K = K || 1; L1 = K * L1; L2 = K * L2;
     var L = L1 + L2, Z = L1 / I1 + L2 / I2 + (1 / I2 - 1 / I1) * L / (2 * PI) * Math.sin(2 * PI * L1 / L);
     return { FE:PI * PI * E / (L * Z), Z:Z };
   }

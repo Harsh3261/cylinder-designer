@@ -1,3 +1,17 @@
+# Note for Muse — v7: DNV §4.4 mountings implemented; gap 1a′ closed (2026-11-27)
+
+Satureday's full read of CG-0194 (Jul 2017): no fixation figures exist in §4 (Fig. 4 = clause 9.2 welding steering
+edge; no Fig. 5; Figs. 1–3 arrangement sketches). The rule is §4.4 text: "For other mounting configurations, L1 and L2
+shall be calculated as effective lengths described by Euler method." Implemented: dnvBuckling(..., K) uses K·L1 and K·L2
+(K from step 4: 1 / 0.7 / 0.5 / 2). The DNV check now runs for every mounting and is labelled "§4.4 effective lengths,
+K = …" when K ≠ 1. Test: with I1 = I2 it reduces to π²EI/(K·L)² for all four K (4 new checks, engine 58).
+§4.5.2 (factor ≥ 2.7 for a Society-approved more accurate method, e.g. including bearing-rotation moments) recorded on
+Sources and in the step-4 note: the Kf/Baragetti result is more detailed but NOT Society-approved, so the 2.7 allowance
+is not applied to it; it is judged against the user's own required factor. §4.2 second read confirms the transcription.
+GAPS.md: 1a′ removed from open, closed entry records that the figures do not exist. sw.js cylinder-designer-v7-dnv44.
+
+---
+
 # Note for Muse — v6: FEA tab (beam model of the cylinder) (2026-11-27)
 
 Harsh: "is it possible to add my own small FEA analysis tool?" — Yes; built as an FEA tab, scoped as you set it.

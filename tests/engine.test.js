@@ -90,6 +90,7 @@ const mr = CD.minRod(50e3, 3, 206e9, 520e6, 2, 1); ok("minRod meets SF", mr && m
   near("DNV Baragetti actuator 4.054 kN", si.FE / 1000, 4.054, 1e-3);
   near("DNV with I1 = I2 equals Euler", CD.dnvBuckling(206e9, 1e-6, 1e-6, 1, 1).FE, Math.PI * Math.PI * 206e9 * 1e-6 / 4, 1e-12);
   const ex = CD.steppedBuckling([{ L:L1 / 1000, EI:206e9 * I1 * 1e-12 }, { L:L2 / 1000, EI:206e9 * I2 * 1e-12 }], "pin", "pin", 60);
+  [1, 0.7, 0.5, 2].forEach(K => near("DNV §4.4 effective lengths, I1 = I2, K = " + K + " → Euler π²EI/(K·L)²", CD.dnvBuckling(206e9, 1e-6, 1e-6, 1, 1, K).FE, Math.PI * Math.PI * 206e9 * 1e-6 / Math.pow(2 * K, 2), 1e-12));
   ok("DNV ≥ exact rigid-joint load and within 20 %", si.FE >= ex * 0.999 && si.FE <= ex * 1.2); }
 ok("NFPA bores 1.5–14", CD.NFPA_BORES.join() === "1.5,2,2.5,3.25,4,5,6,7,8,10,12,14");
 ok("NFPA rods 0.625–5.5", CD.NFPA_RODS.join() === "0.625,1,1.375,1.75,2,2.5,3,3.5,4,4.5,5,5.5");
