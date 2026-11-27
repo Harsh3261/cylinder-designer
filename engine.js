@@ -118,6 +118,18 @@ var CD = (function(){
     }
     return lam;
   }
+  /* DNV-GL CG-0194 (Edition July 2017) §4.2, buckling of the whole cylinder (tube + rod), pinned at both mountings:
+       Z = L1/I1 + L2/I2 + (1/I2 − 1/I1)·L/(2π)·sin(2π·L1/L);  F_E = E·π² / (1000·L·Z)  [kN, with mm and N/mm²]
+     L1 = cylinder (tube) part from the centre of its mounting, L2 = visible rod length fully extended, L = L1 + L2,
+     I1 = π(Do⁴ − Di⁴)/64 tube, I2 = π(do⁴ − di⁴)/64 rod. Acceptance: F_E / actual max load ≥ 4 (≥ 2.7 only with a
+     Society-approved accurate method). Transcribed by Satureday from the July 2017 edition (page image); confirmed here
+     by independent derivation (flexibility-weighted sine mode gives the identical expression) and by reduction to
+     Euler when I1 = I2. It reads 0–18 % ABOVE the exact rigid-joint elastic load (steppedBuckling) — which DNV's
+     factor of 4 is meant to cover; never show it as the exact load. SI in/out: returns N. */
+  function dnvBuckling(E, I1, I2, L1, L2){
+    var L = L1 + L2, Z = L1 / I1 + L2 / I2 + (1 / I2 - 1 / I1) * L / (2 * PI) * Math.sin(2 * PI * L1 / L);
+    return { FE:PI * PI * E / (L * Z), Z:Z };
+  }
   function zeros(n){ var a = []; for (var i = 0; i < n; i++){ a.push(new Array(n).fill(0)); } return a; }
   function mv(A, x){ return A.map(function(r){ var s = 0; for (var j = 0; j < r.length; j++) s += r[j] * x[j]; return s; }); }
   function dot(a, b){ var s = 0; for (var i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
@@ -200,7 +212,7 @@ var CD = (function(){
 
   return { G:G, area:area, BORES:flat(BORES), RODS:flat(RODS), NFPA_BORES:NFPA_BORES, NFPA_RODS:NFPA_RODS, STROKES:STROKES, STROKE_FACTORS:STROKE_FACTORS, stopTube:stopTube,
     forces:forces, requiredBore:requiredBore, speeds:speeds, intensification:intensification, regen:regen, hydPower:hydPower,
-    rodBuckling:rodBuckling, minRod:minRod, steppedBuckling:steppedBuckling, tube:tube, tubeMinWall:tubeMinWall,
+    rodBuckling:rodBuckling, minRod:minRod, steppedBuckling:steppedBuckling, dnvBuckling:dnvBuckling, tube:tube, tubeMinWall:tubeMinWall,
     plate:plate, plateMinT:plateMinT, weld:weld, stressAreaMetric:stressAreaMetric, stressAreaInch:stressAreaInch,
     pin:pin, tieRods:tieRods, cushion:cushion, velocity:velocity, VEL_GUIDE:VEL_GUIDE, natFreq:natFreq, compression:compression };
 })();

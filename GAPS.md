@@ -4,7 +4,7 @@ Research-only: free previews, maker catalogues, cross-standard equivalents, open
 
 | # | Gap | Status / why open | What would close it |
 |---|-----|-------------------|---------------------|
-| 1a | DNV-GL CG-0194 tube+rod buckling formula (PE = π²E/(L·Z)) | Structure and acceptance (PE/Pa ≥ 4) confirmed (Narvydas 2016 + CG-0194 text); the Z expression does not survive text extraction from any free copy reached (DNV PDF robots-blocked; studylib, KTU, Gale copies garbled) | Satureday to quote CG-0194 §4 Z verbatim from the DNV PDF; then implement + test vs Narvydas Table 1 |
+| 1a′ | DNV-GL CG-0194 fixation rules other than pinned–pinned (Figs. 4/5: √2 and 0.5 length rules) | Figure wording garbled in free copies; app applies DNV only with K = 1 | Satureday transcription of §4.1 Figs. 4–5 |
 | 1b | ISO/TS 13725:2021 (max allowable load vs rod yield) and NFPA T3.6.37 verbatim | Paywalled | — (stays named) |
 | 1c | Gland joint stiffness Kf from wear-ring geometry | Baragetti & Villa Eq. 33 as extracted does not reproduce their own Table 3 Kf (units/×10³ unclear) | A clean copy of Eq. 33 + their worked numbers. Meanwhile Kf is a user input; the model itself is validated |
 | 2 | Head retention: thread, wire ring, bolted head | Not researched to two sources yet | Wire-ring: ring-maker thrust-load method + a design text; threaded head: thread shear area (FED-STD-H28 / Machinery's Handbook) |
@@ -16,6 +16,7 @@ Research-only: free previews, maker catalogues, cross-standard equivalents, open
 | 9 | Peak cushion pressure | Only the average is computed (and used for the tube check) | Cushion design paper + a maker's method |
 
 ## Closed
+- 2026-11-27: #1a DNV-GL CG-0194 whole-cylinder buckling (Edition July 2017, §4.2) — transcribed by Satureday; confirmed by independent derivation (flexibility-weighted sine mode), reduction to Euler for I1 = I2, and the printed mm/kN form = engine SI form. Narvydas 2016 Table 1 could NOT serve as the check: it has no DNV column, and its "linear TRD" FEA values fall below rod-only Euler, which a rigid-joint two-segment column cannot do. Finding: DNV reads 0–18 % above the exact rigid-joint elastic load (e.g. 4.054 vs 3.855 kN on the Baragetti actuator).
 - 2026-11-27: #4 ISO 3320 bore 60 — not in the standard's bore list (ISO 3320:2013 Table 4 bore row) and DIN change list agrees; "60" was the non-preferred rod.
 - 2026-11-27: #10 NFPA bore 7.00, 10, 12, 14 in and rods 4.50, 5.00, 5.50 in — paired (see engine.js comment).
 - 2026-11-27: tube + rod buckling with gland flexibility (substance of old gap 1) — Baragetti & Villa 2016 model implemented and reproduced (3855 / 3111 / 3629 N).

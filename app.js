@@ -148,6 +148,7 @@
     if (S.Do > D && S.Lc > S.stick){
       var Lt = S.Lc - S.stick, Lr = S.stick + S.stroke, EIt = S.Etube * Math.PI * (Math.pow(S.Do, 4) - Math.pow(D, 4)) / 64, EIr = S.Erod * R.buck.I;
       try { R.stepped = CD.steppedBuckling([{ L:Lt, EI:EIt }, { L:Lr, EI:EIr }], bc[0], bc[1], 30); } catch(e){ R.stepped = null; }
+      if (S.K === "1") R.dnv = CD.dnvBuckling(1, S.Etube * Math.PI * (Math.pow(S.Do, 4) - Math.pow(D, 4)) / 64, EIr, Lt, Lr); /* E folded into I: pass EI with E=1 */
       if (S.Kf > 0){ try { R.steppedK = CD.steppedBuckling([{ L:Lt, EI:EIt }, { L:Lr, EI:EIr }], bc[0], bc[1], 30, S.Kf); } catch(e){ R.steppedK = null; } }
     }
     /* cushions first: their chamber pressures feed the tube check. Gravity: the cap cushion stops the RETRACT stroke
@@ -211,6 +212,7 @@
     if (S.Q > 0) add(3, "Pump flow meets both speeds", S.Q >= R.qNeed * 0.999 ? "pass" : "warn", fmt(S.Q,"flow") + " available vs " + fmt(R.qNeed,"flow") + " needed");
     if (S.meterOut !== "no") add(3, "Rod-side pressure when metering out (no load)", R.pInt <= S.pmax ? "pass" : "warn", fmt(R.pInt,"press") + " = relief × φ — " + (R.pInt > S.pmax ? "above the relief setting: rod seals, head retention, rod-side port and tube are checked at it" : "within the maximum"));
     add(4, "Rod buckling at maximum pressure", sfS(R.SFbuck, S.SFb), "safety factor " + num(R.SFbuck) + " (required " + num(S.SFb) + "), " + R.buck.mode.split(" (")[0]);
+    if (R.dnv) add(4, "Whole-cylinder buckling per DNV-GL CG-0194 (F_E / stall ≥ 4)", R.dnv.FE / R.Fbuck >= 4 ? "pass" : "warn", "F_E " + fmt(R.dnv.FE,"force") + ", factor " + num(R.dnv.FE / R.Fbuck) + " (DNV requires ≥ 4; reads up to ~18 % above the exact elastic load)");
     add(4, "Stop tube", R.stopTube > 0 ? "warn" : "pass", R.stopTube > 0 ? "recommended: " + fmt(R.stopTube,"len") + " (basic length " + fmt(R.basic,"len") + ")" : "not needed (basic length " + fmt(R.basic,"len") + ")");
     if (R.tube) add(5, "Tube at the highest chamber pressure (von Mises, Lamé)", sfS(R.SFtubeCh, S.SFt), "safety factor " + num(R.SFtubeCh) + " at " + fmt(R.pChMax.p,"press") + " (" + R.pChMax.why + "); at relief " + num(R.SFtube));
     else add(5, "Tube", "fail", "tube outside diameter must be larger than the bore");
@@ -292,8 +294,9 @@
         row("Stop tube", R.stopTube > 0 ? fmt(R.stopTube,"len") : "not needed", R.stopTube > 0 ? "hl" : "") +
         (R.stepped ? '<h4>Tube + rod as one column (informative)</h4>' +
           row("Rigid gland joint — upper bound (Timoshenko–Gere)", fmt(R.stepped,"force") + " · factor " + num(R.stepped / R.Fbuck)) +
+          (R.dnv ? row("DNV-GL CG-0194 (Jul 2017) whole-cylinder load F_E", fmt(R.dnv.FE,"force") + " · factor " + num(R.dnv.FE / R.Fbuck) + " (DNV needs ≥ 4)", R.dnv.FE / R.Fbuck < 4 ? "bad" : "good") : row("DNV-GL CG-0194 method", "pinned–pinned only (set K = 1.0)")) +
           (R.steppedK ? row("With gland joint stiffness Kf (Baragetti & Villa 2016)", fmt(R.steppedK,"force") + " · factor " + num(R.steppedK / R.Fbuck), R.steppedK / R.Fbuck < S.SFb ? "bad" : "good") : "") +
-          '<p class="note">Finite-element two-segment column, verified against Baragetti &amp; Villa 2016 (rigid 3,855 N; Kf models 3,111 N and 3,629 N reproduced). A rigid joint overstates strength; real wear rings and clearance make it flexible — enter Kf to include that. The rod-only check above stays the governing, conservative check. DNV-GL CG-0194 asks for buckling load / actual load ≥ 4 with its own formula (not implemented: its Z term could not be read from a free source). ISO/TS 13725 is a different, maximum-allowable-load method and is not implemented.</p>' : ""); } },
+          '<p class="note">Finite-element two-segment column, verified against Baragetti &amp; Villa 2016 (rigid 3,855 N; Kf models 3,111 N and 3,629 N reproduced). A rigid joint overstates strength; real wear rings and clearance make it flexible — enter Kf to include that. The rod-only check above stays the governing, conservative check. DNV-GL CG-0194 (July 2017 edition, §4.2) is shown with its own acceptance, F_E / actual maximum load ≥ 4; its sine-mode formula reads up to about 18 % above the exact elastic load, which the factor of 4 covers. ISO/TS 13725 is a different, maximum-allowable-load method and is not implemented.</p>' : ""); } },
     { n:5, t:"Tube (barrel)", sub:"Wall thickness against bursting", f:["Do","Sytube","Etube","nu","SFt","ptest"],
       out:function(R){ if (!R.tube) return '<p class="bad">The tube outside diameter must be larger than the bore.</p>';
         var t = R.tube; return row("Wall thickness", fmt(t.t,"len")) + row("Hoop stress, Barlow (thin wall)", fmt(t.barlow,"stress")) + row("Hoop stress at the bore, Lamé", fmt(t.hoop,"stress")) +

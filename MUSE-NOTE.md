@@ -1,3 +1,32 @@
+# Note for Muse — v4: DNV-GL CG-0194 buckling implemented, gap 1a closed (2026-11-27)
+
+Satureday's transcription (CG-0194 Edition July 2017, §4.2, page image):
+  Z = L1/I1 + L2/I2 + (1/I2 − 1/I1)·L/(2π)·sin(2π·L1/L);   F_E = E·π²/(1000·L·Z) kN (mm, N/mm²); accept F_E/Pa ≥ 4.
+
+## How it was checked (Narvydas Table 1 could not be the check)
+- Narvydas 2016 Table 1 has NO DNV column (Euler, Tetmajer, FEA linear/nonlinear TRD, Johnson only), and its "linear
+  TRD" FEA stresses sit BELOW rod-only Euler (142 vs 153 MPa at λ = 113) — impossible for a rigid-joint two-segment
+  column, so his FEA includes joint behaviour not specified in the paper. It cannot validate the formula.
+- Instead: (1) independent derivation — a pinned–pinned column with a sine mode and flexibility (1/EI) weighting along
+  tube and rod gives exactly L·Z with Z as transcribed, L1 = tube segment, so the transcription (including which length
+  goes with which inertia) is confirmed; (2) I1 = I2 reduces exactly to Euler; (3) the printed mm/kN form with the 1000
+  factor equals the engine's SI form (test).
+- FINDING for Harsh: DNV reads 0–18 % ABOVE the exact rigid-joint elastic load from the same geometry (Baragetti
+  actuator 4.054 vs exact 3.855 kN, +5 %; 100/70 × 800 example +18 %; equal-I 0 %). It is an assumed-mode estimate;
+  DNV's factor 4 covers it. The app shows F_E only against DNV's own ≥ 4, never as the exact load.
+
+## In the app
+- Step 4: "DNV-GL CG-0194 (Jul 2017) whole-cylinder load F_E" + factor vs ≥ 4; report check "Whole-cylinder buckling
+  per DNV-GL CG-0194 (F_E / stall ≥ 4)" — pass ≥ 4 else "Check". Load = stall at relief (worst case).
+- Applied only for pinned–pinned (K = 1.0); other fixations → new gap 1a′ (Figs. 4–5 length rules, garbled in free
+  copies). Governing check stays rod-only Euler/Johnson.
+- Edition: July 2017 is the edition read. If a later CG-0194 edition exists, the edition watch should flag it.
+
+Tests: 54 (new: printed kN form = SI form; Baragetti actuator 4.054 kN; I1 = I2 → Euler; DNV ≥ exact and within 20 %).
+Metric example: 15 OK / 4 to check / 0 failing; DNV F_E 1,403.47 kN, factor 8.93. sw.js cylinder-designer-v4-dnv.
+
+---
+
 # Note for Muse — v3: real two-direction worst-case checker + gap wave (2026-11-27)
 
 ## 1. Buckling (old gap 1) — what was closable for free, and what was not
